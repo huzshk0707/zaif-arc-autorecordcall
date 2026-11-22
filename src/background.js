@@ -147,7 +147,10 @@ async function refreshLibrary() {
     return { ...item, status: !file || file.exists === false ? "missing" :
       file.state === "complete" ? "saved" : file.state === "interrupted" ? "failed" : "saving" };
   }));
-  await chrome.storage.local.set({ recordings: results });
+  // Avoid an onChanged → REFRESH_LIBRARY loop in the dashboard.
+  if (results.some((entry, index) => entry.status !== recordings[index].status)) {
+    await chrome.storage.local.set({ recordings: results });
+  }
   return results;
 }
 async function deleteRecording(recordId) {
