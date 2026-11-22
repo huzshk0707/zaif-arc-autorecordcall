@@ -35,7 +35,7 @@ async function loadState() {
   $("statusPill").querySelector("span").textContent = recording ? "RECORDING" : capture ? "ARMED" : "STANDBY";
   $("stateLabel").textContent = recording ? "Recording in progress ♡" : capture ?
     "Ready to keep a new moment" : state.settings.siteOrigin ?
-      "Ready when you are ♡" : "Let’s get everything ready.";
+      "Ready when you are ♡" : "Choose a website to begin.";
   if (priorRecordingState === false && recording) showToast("Recording started ✨");
   priorRecordingState = recording;
   $("startBtn").disabled = !capture || recording;
@@ -70,9 +70,7 @@ async function refreshLibrary() {
     sparkle.textContent = "✦"; sparkle.setAttribute("aria-hidden", "true");
     artwork.append(panda, blossom, sparkle);
     const heading = document.createElement("h3"); heading.textContent = "Your recordings will live here ✨";
-    const subtext = document.createElement("p");
-    subtext.textContent = "A little home for your saved moments. ♡";
-    empty.append(artwork, heading, subtext); list.append(empty);
+    empty.append(artwork, heading); list.append(empty);
     return;
   }
   for (const rec of items) {

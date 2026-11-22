@@ -96,13 +96,6 @@ body{
 .eyebrow span{color:#ffcee4}
 .hero h1{font-size:clamp(42px,5.2vw,65px);font-weight:850;line-height:1.05;letter-spacing:-.065em;margin:0 0 14px;color:#fff9ff;text-shadow:0 5px 24px #a07bcc25}
 .hero h1 em{font-style:normal;color:#ecc5fa}
-.edition-chip{
-  display:inline-flex;align-items:center;gap:5px;
-  color:#fff1f7;background:rgba(244,179,225,.16);border:1px solid #e9b9db8c;
-  font-size:10px;font-weight:800;letter-spacing:.18em;border-radius:99px;
-  padding:8px 15px;margin-bottom:16px
-}
-.hero-copy>p:not(.tiny){margin:0 0 24px;color:#e0d3ed;font-size:15px;line-height:1.65}
 .hero-status{font-size:13px;margin-bottom:12px;color:#f8e9ff;gap:10px}
 .hero-status .small-dot{height:9px;width:9px}
 .tiny{color:#c6bed8!important;font-size:11px!important;line-height:1.7;max-width:470px;margin-bottom:18px!important}
@@ -168,7 +161,6 @@ body{
 .empty-blossom{position:absolute;z-index:2;color:#eeb5d9;font-size:22px;top:5px;right:-10px}
 .empty-blossom-second{top:auto;right:auto;bottom:7px;left:-6px;color:#c8b8f2;font-size:17px}
 .library-empty h3{font-size:17px;font-weight:760;margin:0;color:#fff3fc}
-.library-empty p{font-size:12px;line-height:1.5;color:#c8bddd;margin:3px 0 0;max-width:275px}
 .footer{border-top:1px solid #baacd039;padding-top:19px;margin-top:32px;letter-spacing:.1em;color:#b4a7c9;gap:16px}
 .footer-spark{color:#f7bddc;margin-left:4px}
 .footer #errorDisplay{color:#ffc0cd}

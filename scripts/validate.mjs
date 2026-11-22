@@ -34,10 +34,21 @@ assert.ok(blossom.includes("<svg"), "Blossom SVG missing");
 for (const message of [
   "Your recordings will live here ✨",
   "Recording started ✨",
-  "Saved successfully ♡",
-  "Let’s get everything ready."
+  "Saved successfully ♡"
 ]) assert.ok(js.includes(message), "Missing approved copy: " + message);
 assert.ok(js.includes("fizuEditionIntroSeen"), "Versioned welcome is required");
+assert.ok(html.includes("In-call indicator CSS selector (optional)"));
+assert.ok(html.includes("Leave blank for manual ChatGPT test"));
+for (const removed of [
+  "A little home for your saved moments.",
+  "A softer little place to keep every conversation.",
+  "✿ &nbsp; FIZU EDITION &nbsp; ✿",
+  "Let’s get everything ready."
+]) {
+  assert.ok(!html.includes(removed), "Unwanted dashboard copy remains: " + removed);
+  assert.ok(!js.includes(removed), "Unwanted JS copy remains: " + removed);
+  assert.ok(!read("README.md").includes(removed), "Unwanted README copy remains: " + removed);
+}
 const manifestVersion = JSON.parse(read("manifest.json")).version;
 assert.equal(manifestVersion, JSON.parse(read("package.json")).version);
 const originalBackendPaths = ["src/background.js", "src/offscreen.js", "src/call-detector.js"];
