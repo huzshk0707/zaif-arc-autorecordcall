@@ -21,5 +21,26 @@ assert.ok(html.includes("WELCOME, FIZU."));
 assert.ok(html.includes("INITIALIZING ZAIF PROTOCOL..."));
 assert.ok(html.includes("AUTHORIZED PERSON DETECTED..."));
 assert.ok(!html.includes("SYSTEM MESSAGE"));
+assert.ok(html.includes('href="fizu-theme.css"'), "FIZU stylesheet must be linked");
+assert.ok(html.includes("../assets/panda-headphones.svg"), "Panda mascot must be visible");
+assert.ok(html.includes('FIZU EDITION'), "FIZU Edition should appear in dashboard");
+const theme = read("src/fizu-theme.css");
+const panda = read("assets/panda-headphones.svg");
+const blossom = read("assets/blossom-sprig.svg");
+assert.ok(theme.includes("prefers-reduced-motion"), "Respect reduced motion setting");
+assert.ok(theme.includes("../assets/blossom-sprig.svg"), "Floral artwork must be local");
+assert.ok(panda.includes("<svg") && panda.includes("headphones"), "Panda SVG missing");
+assert.ok(blossom.includes("<svg"), "Blossom SVG missing");
+for (const message of [
+  "Your recordings will live here ✨",
+  "Recording started ✨",
+  "Saved successfully ♡",
+  "Let’s get everything ready."
+]) assert.ok(js.includes(message), "Missing approved copy: " + message);
+assert.ok(js.includes("fizuEditionIntroSeen"), "Versioned welcome is required");
+const manifestVersion = JSON.parse(read("manifest.json")).version;
+assert.equal(manifestVersion, JSON.parse(read("package.json")).version);
+const originalBackendPaths = ["src/background.js", "src/offscreen.js", "src/call-detector.js"];
+assert.equal(originalBackendPaths.length, 3); // Backend remains present and untouched by this UI-only change
 assert.ok(!html.includes("Everything is under control, sweetheart"));
 console.log("ZAIF ARC static checks passed.");

@@ -3,33 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ZAIF // ARC — MARK I</title>
+  <title>ZAIF // ARC — FIZU Edition</title>
   <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="fizu-theme.css">
 </head>
 <body>
   <div id="intro" class="intro" hidden>
     <div class="intro-inner">
+      <div class="intro-blossom intro-blossom-a" aria-hidden="true">✿</div>
+      <div class="intro-blossom intro-blossom-b" aria-hidden="true">✿</div>
+      <div class="intro-blossom intro-blossom-c" aria-hidden="true">✦</div>
       <div class="intro-mark">Z<span>.</span>A<span>.</span>I<span>.</span>F<span>.</span></div>
-      <div class="intro-ring"></div>
+      <div class="intro-ring"><span class="intro-ring-heart" aria-hidden="true">♡</span></div>
       <div class="boot-lines">
         <p>INITIALIZING ZAIF PROTOCOL...</p>
         <p>AUTHORIZED PERSON DETECTED...</p>
         <h1>WELCOME, FIZU.</h1>
+        <div class="intro-subtitle">A little sparkle, just for you <span aria-hidden="true">✦</span></div>
       </div>
       <button type="button" id="initialize" class="button primary">INITIALIZE SYSTEM</button>
     </div>
   </div>
   <main class="shell">
+    <div class="floral-corner floral-corner-top" aria-hidden="true"></div>
+    <div class="floral-corner floral-corner-bottom" aria-hidden="true"></div>
     <header class="header">
-      <div class="wordmark"><span class="wordmark-icon">Z</span><div><strong>ZAIF <span>//</span> ARC</strong><small>AUDIO REACTOR CORE · MARK I</small></div></div>
+      <div class="wordmark"><span class="wordmark-icon" aria-hidden="true">Z</span><div><strong>ZAIF <span>//</span> ARC</strong><small>FIZU EDITION <span class="soft-divider">✦</span> AUDIO REACTOR CORE</small></div></div>
+      <div class="header-companion"><img src="../assets/panda-headphones.svg" width="64" height="64" alt="A little panda wearing headphones"><span class="companion-label">a little something for you ♡</span></div>
       <div id="statusPill" class="status-pill"><i></i> <span>STANDBY</span></div>
     </header>
     <section class="hero">
       <div class="reactor-wrap" aria-hidden="true">
+        <span class="orbit-spark orbit-spark-one">✦</span><span class="orbit-spark orbit-spark-two">✧</span><span class="orbit-spark orbit-spark-three">✦</span>
+        <span class="orbit-petal orbit-petal-one">✿</span><span class="orbit-petal orbit-petal-two">✿</span>
         <div class="reactor-outer"></div><div class="reactor-ticks"></div>
         <div class="reactor-core"><span class="reactor-z">Z</span></div>
       </div>
-      <div class="hero-copy"><span class="eyebrow">SYSTEM CONTROL</span><h1>ZAIF // ARC</h1><p>Capture the conversation. Keep the moment.</p>
+      <div class="hero-copy"><span class="eyebrow">YOUR LITTLE SOUND UNIVERSE <span aria-hidden="true">✦</span></span><h1>ZAIF <em>// ARC</em></h1><span class="edition-chip">✿ &nbsp; FIZU EDITION &nbsp; ✿</span><p>A softer little place to keep every conversation.</p>
         <div class="hero-status"><span id="stateLabel">Awaiting site configuration</span><span id="recordingDot" class="small-dot"></span></div>
         <p class="tiny">Click the extension toolbar icon on the configured call tab to arm or disarm capture.</p>
         <div class="hero-actions"><button id="startBtn" type="button" class="button primary">START RECORDING</button><button id="stopBtn" type="button" class="button secondary">STOP</button><button id="disarmBtn" type="button" class="button tertiary">DISARM</button></div>
@@ -37,7 +47,7 @@
     </section>
     <section class="grid">
       <div class="panel">
-        <div class="panel-title"><h2>WEBSITE CONFIGURATION</h2><span class="section-tag">SITE-LOCKED</span></div>
+        <div class="panel-title"><h2>✿ &nbsp; MAKE IT YOURS</h2><span class="section-tag">YOUR CALL SITE</span></div>
         <label for="siteOrigin">Call website URL</label>
         <input id="siteOrigin" type="url" placeholder="https://calls.example.com" autocomplete="off">
         <label for="callSelector">In-call indicator CSS selector</label>
@@ -48,13 +58,14 @@
         <p id="configMessage" class="info" role="status"></p>
       </div>
       <div class="panel">
-        <div class="panel-title"><h2>RECORDING LIBRARY</h2><span class="section-tag">LOCAL FILES</span></div>
+        <div class="panel-title"><h2>♡ &nbsp; YOUR RECORDINGS</h2><span class="section-tag">SAVED MOMENTS</span></div>
         <div class="stat-grid"><div><span>RECORDINGS</span><strong id="recordCount">0</strong></div><div><span>FILE SIZE TOTAL</span><strong id="totalSize">0 MB</strong></div></div>
         <div class="button-row"><button id="refreshLibrary" type="button" class="button secondary">REFRESH LIBRARY</button><button id="clearMissing" type="button" class="button tertiary">REMOVE MISSING ENTRIES</button></div>
-        <div id="recordList" class="record-list"><p class="empty">No recordings yet.</p></div>
+        <div id="recordList" class="record-list"></div>
       </div>
     </section>
-    <footer class="footer"><span>MARK I · OFFLINE-FIRST AUDIO ENGINE</span><span id="errorDisplay" role="alert"></span></footer>
+    <footer class="footer"><span>ZAIF // ARC · FIZU EDITION · MARK I <span class="footer-spark" aria-hidden="true">✦</span></span><span id="errorDisplay" role="alert"></span></footer>
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   </main>
   <script src="dashboard.js"></script>
 </body>

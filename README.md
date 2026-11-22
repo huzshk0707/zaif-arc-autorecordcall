@@ -1,16 +1,24 @@
-# ZAIF // ARC — MARK I
+# ZAIF // ARC — FIZU Edition (MARK I)
 
-A site-scoped, offline-first **Chrome Manifest V3** audio call recorder with an original ZAIF reactor dashboard.
+A site-scoped, offline-first **Chrome Manifest V3** audio call recorder with a soft futuristic dashboard, a tiny headphone panda, and delicate blossom accents. The recording engine and permissions stay the same.
 
 ## Personal launch sequence
-The **first** dashboard launch presents an animated reactor and the exact lines:
+On the first FIZU Edition launch (including upgrades from MARK I), the dashboard presents the soft glowing reactor and these exact lines:
 - `INITIALIZING ZAIF PROTOCOL...`
 - `AUTHORIZED PERSON DETECTED...`
 - `WELCOME, FIZU.`
 
-Press **INITIALIZE SYSTEM** to play the original synthesized three-tone chime. The sequence appears once per extension profile. There is **no system-message card** or romantic footer.
+Press **INITIALIZE SYSTEM** to play the original synthesized three-tone chime. The FIZU welcome appears once per extension profile and stores a versioned flag. There is **no system-message card** or romantic footer. The pink/lavender/cyan visual theme and cute illustrations are entirely local (no image CDN or AI).
 
-## What works in this first prototype
+## FIZU Edition design
+- Premium dark-plum interface with pastel pink, lilac, cyan, and cream highlights.
+- Reactor-inspired ZAIF core with subtle panda-ear shape; small panda-with-headphones mascot in the header and empty library.
+- Delicate blossom illustration and slow, restrained sparkles; animations honor `prefers-reduced-motion`.
+- Approved copy: `Your recordings will live here ✨`, `Recording started ✨`, `Saved successfully ♡`, and `Let’s get everything ready.`.
+- The saved message appears only when Chrome reports a completed download, not merely on call end.
+- No third-party assets, fonts, backend, or telemetry.
+
+## What works in this prototype
 - Target exactly one configured website origin.
 - Arm/disarm the current site's tab using the **Chrome extension toolbar icon** (explicit user invocation, as required by Chrome).
 - Maintain captured tab audio in an offscreen document while the authorized session remains alive.
@@ -41,6 +49,9 @@ Press **INITIALIZE SYSTEM** to play the original synthesized three-tone chime. T
 - Disk files are not stored twice in IndexedDB. The library stores metadata only. Deleting a file outside Chrome may leave an entry until **REFRESH LIBRARY**; remove missing entries using the dedicated button.
 - This prototype has not been end-to-end tested in the user's calling website or browser. Test with a short, authorized call before relying on it.
 - Record only calls you are entitled to record and follow applicable recording-consent requirements.
+
+## Upgrade from MARK I
+Download the updated repository or pull the latest `main`. Then visit `chrome://extensions` → ZAIF ARC → **Reload**. Existing recording metadata and site preferences stay in the Chrome extension profile. The new FIZU welcome sequence appears once.
 
 ## Developer
 No dependencies, no server, no remote scripts. For static checks run `npm test` (requires Node.js 20+). Chrome docs: [tabCapture](https://developer.chrome.com/docs/extensions/reference/api/tabCapture), [offscreen](https://developer.chrome.com/docs/extensions/reference/api/offscreen), [downloads](https://developer.chrome.com/docs/extensions/reference/api/downloads).

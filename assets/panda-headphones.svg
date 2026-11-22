@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" role="img" aria-labelledby="title desc">
+<title id="title">Little panda with headphones</title><desc id="desc">A smiling cream-and-black panda wearing pink and lavender headphones, with a small heart.</desc>
+<defs><linearGradient id="headphones" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e7b8ff"/><stop offset="1" stop-color="#a7c9ff"/></linearGradient>
+<linearGradient id="fur" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fffefc"/><stop offset="1" stop-color="#f8edf8"/></linearGradient>
+<filter id="shadow" x="-35%" y="-35%" width="170%" height="180%"><feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#8f61af" flood-opacity=".2"/></filter></defs>
+<g filter="url(#shadow)">
+<ellipse cx="72" cy="92" rx="31" ry="36" fill="#2d2941" transform="rotate(-18 72 92)"/><ellipse cx="211" cy="92" rx="31" ry="36" fill="#2d2941" transform="rotate(18 211 92)"/>
+<ellipse cx="140" cy="148" rx="99" ry="93" fill="url(#fur)" stroke="#ead8f1" stroke-width="4"/>
+<path d="M42 142C37 74 82 28 140 28s103 46 98 114" fill="none" stroke="#5c557e" stroke-width="20" stroke-linecap="round"/>
+<path d="M42 140C37 74 82 28 140 28s103 46 98 112" fill="none" stroke="url(#headphones)" stroke-width="14" stroke-linecap="round"/>
+<rect x="25" y="113" width="33" height="71" rx="16" fill="#a9b8f4" stroke="#6e76bd" stroke-width="4" transform="rotate(-12 42 149)"/>
+<rect x="222" y="113" width="33" height="71" rx="16" fill="#e6b4e5" stroke="#9475b9" stroke-width="4" transform="rotate(12 238 149)"/>
+<ellipse cx="103" cy="147" rx="31" ry="36" fill="#393347" transform="rotate(18 103 147)"/>
+<ellipse cx="177" cy="147" rx="31" ry="36" fill="#393347" transform="rotate(-18 177 147)"/>
+<ellipse cx="110" cy="143" rx="9" ry="11" fill="#fff"/><ellipse cx="171" cy="143" rx="9" ry="11" fill="#fff"/>
+<circle cx="113" cy="142" r="4" fill="#22213a"/><circle cx="169" cy="142" r="4" fill="#22213a"/>
+<ellipse cx="80" cy="190" rx="15" ry="9" fill="#f7a8c8" opacity=".8"/><ellipse cx="202" cy="190" rx="15" ry="9" fill="#f7a8c8" opacity=".8"/>
+<path d="M128 185q12-12 24 0q-12 14-24 0Z" fill="#4d4057"/><path d="M140 194q-1 10-11 10m11-10q1 10 11 10" fill="none" stroke="#65516e" stroke-width="3.5" stroke-linecap="round"/>
+<path d="M247 168c-2 28-17 41-45 43" stroke="#b59bdb" stroke-width="8" fill="none" stroke-linecap="round"/>
+<rect x="187" y="202" width="20" height="12" rx="6" fill="#f6a1c3" transform="rotate(-18 197 208)"/>
+</g>
+<path d="M233 47c6-14 21-8 20 2 5-12 24-5 18 8-4 10-17 17-23 20-12-8-23-18-15-30Z" fill="#f3a5c9"/>
+<path d="M24 39l3 10 10 3-10 3-3 10-3-10-10-3 10-3z" fill="#9ce7ee"/><circle cx="252" cy="114" r="5" fill="#d9aafa"/>
+</svg>
