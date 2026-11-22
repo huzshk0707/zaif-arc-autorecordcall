@@ -1,6 +1,16 @@
 const $ = id => document.getElementById(id);
 const request = (type, data = {}) => chrome.runtime.sendMessage({ type, ...data });
-const fmtBytes = n => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : (n / 1024).toFixed(1) + " KB";
+const fmtBytes = n => !n ? "0 MB" : n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : (n / 1024).toFixed(1) + " KB";
+let priorRecordingState = null;
+let knownSavedIds = null;
+let toastTimer = null;
+function showToast(message) {
+  const toast = $("toast");
+  toast.textContent = message;
+  toast.classList.add("is-visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 3700);
+}
 const fmtTime = ms => {
   const seconds = Math.floor((ms || 0) / 1000);
   return Math.floor(seconds / 60) + ":" + String(seconds % 60).padStart(2, "0");
@@ -13,7 +23,7 @@ function siteOrigin(raw) {
 }
 function info(text, error = false) {
   $("configMessage").textContent = text;
-  $("configMessage").style.color = error ? "#ff8397" : "#82d9e7";
+  $("configMessage").classList.toggle("is-error", error);
 }
 function errorMessage(text) { $("errorDisplay").textContent = text || ""; }
 async function loadState() {
@@ -23,12 +33,15 @@ async function loadState() {
   const recording = Boolean(capture?.recording);
   $("statusPill").classList.toggle("recording", recording);
   $("statusPill").querySelector("span").textContent = recording ? "RECORDING" : capture ? "ARMED" : "STANDBY";
-  $("stateLabel").textContent = recording ? "Audio recording active" : capture ?
-    "Armed on selected tab · waiting for call" : "Not armed — click the toolbar icon on the call tab";
+  $("stateLabel").textContent = recording ? "Recording in progress ♡" : capture ?
+    "Ready to keep a new moment" : state.settings.siteOrigin ?
+      "Ready when you are ♡" : "Let’s get everything ready.";
+  if (priorRecordingState === false && recording) showToast("Recording started ✨");
+  priorRecordingState = recording;
   $("startBtn").disabled = !capture || recording;
   $("stopBtn").disabled = !recording;
   $("disarmBtn").disabled = !capture;
-  $("recordingDot").style.background = recording ? "#fa5671" : "#4fe6f5";
+  $("recordingDot").style.background = recording ? "#ff93b7" : "#b6f3f1";
   if (capture?.warning) errorMessage(capture.warning);
   if (document.activeElement !== $("siteOrigin")) $("siteOrigin").value = state.settings.siteOrigin || "";
   if (document.activeElement !== $("callSelector")) $("callSelector").value = state.settings.callSelector || "";
@@ -39,10 +52,29 @@ async function refreshLibrary() {
   const result = await request("REFRESH_LIBRARY");
   if (!result.ok) return errorMessage(result.error);
   const items = result.recordings;
+  const newlySaved = items.find(item => item.status === "saved" && knownSavedIds !== null && !knownSavedIds.has(item.id));
+  knownSavedIds = new Set(items.filter(item => item.status === "saved").map(item => item.id));
+  if (newlySaved) showToast("Saved successfully ♡");
   $("recordCount").textContent = String(items.filter(x => x.status !== "missing").length);
   $("totalSize").textContent = fmtBytes(items.filter(x => x.status === "saved").reduce((n, x) => n + (x.bytes || 0), 0));
   const list = $("recordList"); list.replaceChildren();
-  if (!items.length) { const p = document.createElement("p"); p.className = "empty"; p.textContent = "No recordings yet."; list.append(p); return; }
+  if (!items.length) {
+    const empty = document.createElement("div"); empty.className = "library-empty";
+    const artwork = document.createElement("div"); artwork.className = "empty-mascot-wrap";
+    const panda = document.createElement("img"); panda.className = "empty-mascot";
+    panda.src = "../assets/panda-headphones.svg"; panda.width = 113; panda.height = 113;
+    panda.alt = "A little panda with headphones";
+    const blossom = document.createElement("span"); blossom.className = "empty-blossom";
+    blossom.textContent = "✿"; blossom.setAttribute("aria-hidden", "true");
+    const sparkle = document.createElement("span"); sparkle.className = "empty-blossom empty-blossom-second";
+    sparkle.textContent = "✦"; sparkle.setAttribute("aria-hidden", "true");
+    artwork.append(panda, blossom, sparkle);
+    const heading = document.createElement("h3"); heading.textContent = "Your recordings will live here ✨";
+    const subtext = document.createElement("p");
+    subtext.textContent = "A little home for your saved moments. ♡";
+    empty.append(artwork, heading, subtext); list.append(empty);
+    return;
+  }
   for (const rec of items) {
     const row = document.createElement("div"); row.className = "record";
     const icon = document.createElement("span"); icon.className = "record-icon"; icon.textContent = "◉";
@@ -115,12 +147,13 @@ function playBootSound() {
   setTimeout(() => ctx.close().catch(() => {}), 1200);
 }
 async function initializeIntro() {
-  const { introSeen = false } = await chrome.storage.local.get("introSeen");
-  $("intro").hidden = introSeen;
+  // Versioned flag: show the new FIZU Edition welcome once, even to existing installations.
+  const { fizuEditionIntroSeen = false } = await chrome.storage.local.get("fizuEditionIntroSeen");
+  $("intro").hidden = fizuEditionIntroSeen;
   $("initialize").addEventListener("click", async () => {
     playBootSound();
     $("intro").hidden = true;
-    await chrome.storage.local.set({ introSeen: true });
+    await chrome.storage.local.set({ introSeen: true, fizuEditionIntroSeen: true });
   });
 }
 $("saveSite").addEventListener("click", saveSite);

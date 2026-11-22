@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "ZAIF // ARC — MARK I",
+  "name": "ZAIF // ARC — FIZU Edition",
   "short_name": "ZAIF ARC",
-  "version": "0.1.0",
-  "description": "Site-scoped call audio recorder with a cinematic ZAIF startup.",
+  "version": "0.2.0",
+  "description": "Offline-first, site-scoped call recorder with a cute futuristic FIZU Edition dashboard.",
   "minimum_chrome_version": "116",
   "permissions": [
     "activeTab",
