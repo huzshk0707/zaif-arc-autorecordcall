@@ -23,7 +23,8 @@ assert.ok(html.includes("AUTHORIZED PERSON DETECTED..."));
 assert.ok(!html.includes("SYSTEM MESSAGE"));
 assert.ok(html.includes('href="fizu-theme.css"'), "FIZU stylesheet must be linked");
 assert.ok(html.includes("../assets/panda-headphones.svg"), "Panda mascot must be visible");
-assert.ok(html.includes('FIZU EDITION'), "FIZU Edition should appear in dashboard");
+assert.ok(html.includes("ZAIF <span>//</span> ARC"), "Brand should remain in header");
+assert.ok(html.includes("../assets/panda-headphones.svg"), "Panda companion must remain");
 const theme = read("src/fizu-theme.css");
 const panda = read("assets/panda-headphones.svg");
 const blossom = read("assets/blossom-sprig.svg");
@@ -40,6 +41,9 @@ assert.ok(js.includes("fizuEditionIntroSeen"), "Versioned welcome is required");
 assert.ok(html.includes("In-call indicator CSS selector (optional)"));
 assert.ok(html.includes("Leave blank for manual ChatGPT test"));
 for (const removed of [
+  "Ready when you are ♡",
+  "a little something for you ♡",
+  "FIZU EDITION <span class=\"soft-divider\">✦</span> AUDIO REACTOR CORE",
   "A little home for your saved moments.",
   "A softer little place to keep every conversation.",
   "✿ &nbsp; FIZU EDITION &nbsp; ✿",

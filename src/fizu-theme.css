@@ -38,11 +38,8 @@ body{
 .wordmark-icon::first-letter{transform:rotate(6deg)}
 .wordmark strong{font-size:17px;letter-spacing:.12em;font-weight:800}
 .wordmark strong span{color:var(--pink)}
-.wordmark small{font-size:10px;color:#d9c8ed;letter-spacing:.12em}
-.soft-divider{padding:0 4px;color:var(--pink)}
 .header-companion{display:flex;align-items:center;gap:7px;margin-left:auto;margin-right:10px}
 .header-companion img{width:64px;height:64px;filter:drop-shadow(0 7px 14px rgba(232,153,226,.24));animation:panda-float 5s ease-in-out infinite}
-.companion-label{font-size:11px;color:#f3d9ee;letter-spacing:.01em;max-width:112px;line-height:1.5}
 .status-pill{
   padding:10px 15px;background:rgba(120,84,151,.2);
   border-color:rgba(201,177,244,.52);
@@ -208,7 +205,6 @@ body{
   .reactor-wrap{width:260px;height:260px}
   .reactor-core{inset:54px}.reactor-z{font-size:75px}
   .reactor-ticks{inset:30px}.reactor-outer{inset:11px}
-  .companion-label{display:none}
   .panel{padding:22px}
 }
 @media(max-width:740px){
@@ -227,7 +223,6 @@ body{
 }
 @media(max-width:450px){
   .wordmark strong{font-size:14px}
-  .wordmark small{font-size:8px;letter-spacing:.07em}
   .header-companion img{width:42px;height:42px}
   .status-pill{width:100%;justify-content:center;text-align:center}
   .reactor-wrap{width:220px;height:220px}

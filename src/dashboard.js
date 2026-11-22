@@ -35,7 +35,7 @@ async function loadState() {
   $("statusPill").querySelector("span").textContent = recording ? "RECORDING" : capture ? "ARMED" : "STANDBY";
   $("stateLabel").textContent = recording ? "Recording in progress ♡" : capture ?
     "Ready to keep a new moment" : state.settings.siteOrigin ?
-      "Ready when you are ♡" : "Choose a website to begin.";
+      "Ready when you are" : "Choose a website to begin.";
   if (priorRecordingState === false && recording) showToast("Recording started ✨");
   priorRecordingState = recording;
   $("startBtn").disabled = !capture || recording;
