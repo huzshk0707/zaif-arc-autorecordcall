@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZAIF // ARC — MARK I</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div id="intro" class="intro" hidden>
+    <div class="intro-inner">
+      <div class="intro-mark">Z<span>.</span>A<span>.</span>I<span>.</span>F<span>.</span></div>
+      <div class="intro-ring"></div>
+      <div class="boot-lines">
+        <p>INITIALIZING ZAIF PROTOCOL...</p>
+        <p>AUTHORIZED PERSON DETECTED...</p>
+        <h1>WELCOME, FIZU.</h1>
+      </div>
+      <button type="button" id="initialize" class="button primary">INITIALIZE SYSTEM</button>
+    </div>
+  </div>
+  <main class="shell">
+    <header class="header">
+      <div class="wordmark"><span class="wordmark-icon">Z</span><div><strong>ZAIF <span>//</span> ARC</strong><small>AUDIO REACTOR CORE · MARK I</small></div></div>
+      <div id="statusPill" class="status-pill"><i></i> <span>STANDBY</span></div>
+    </header>
+    <section class="hero">
+      <div class="reactor-wrap" aria-hidden="true">
+        <div class="reactor-outer"></div><div class="reactor-ticks"></div>
+        <div class="reactor-core"><span class="reactor-z">Z</span></div>
+      </div>
+      <div class="hero-copy"><span class="eyebrow">SYSTEM CONTROL</span><h1>ZAIF // ARC</h1><p>Capture the conversation. Keep the moment.</p>
+        <div class="hero-status"><span id="stateLabel">Awaiting site configuration</span><span id="recordingDot" class="small-dot"></span></div>
+        <p class="tiny">Click the extension toolbar icon on the configured call tab to arm or disarm capture.</p>
+        <div class="hero-actions"><button id="startBtn" type="button" class="button primary">START RECORDING</button><button id="stopBtn" type="button" class="button secondary">STOP</button><button id="disarmBtn" type="button" class="button tertiary">DISARM</button></div>
+      </div>
+    </section>
+    <section class="grid">
+      <div class="panel">
+        <div class="panel-title"><h2>WEBSITE CONFIGURATION</h2><span class="section-tag">SITE-LOCKED</span></div>
+        <label for="siteOrigin">Call website URL</label>
+        <input id="siteOrigin" type="url" placeholder="https://calls.example.com" autocomplete="off">
+        <label for="callSelector">In-call indicator CSS selector</label>
+        <input id="callSelector" type="text" placeholder='e.g. button[aria-label="Leave call"]' autocomplete="off">
+        <p class="help">The recorder starts when this element appears on the selected website and stops when it disappears. Each calling website needs a verified selector.</p>
+        <div class="checks"><label><input id="autoRecord" type="checkbox" checked> Auto-record detected calls</label><label><input id="includeMicrophone" type="checkbox" checked> Include my microphone</label></div>
+        <div class="button-row"><button id="saveSite" type="button" class="button primary">SAVE & ENABLE SITE</button><button id="testMic" type="button" class="button secondary">TEST MIC PERMISSION</button></div>
+        <p id="configMessage" class="info" role="status"></p>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><h2>RECORDING LIBRARY</h2><span class="section-tag">LOCAL FILES</span></div>
+        <div class="stat-grid"><div><span>RECORDINGS</span><strong id="recordCount">0</strong></div><div><span>FILE SIZE TOTAL</span><strong id="totalSize">0 MB</strong></div></div>
+        <div class="button-row"><button id="refreshLibrary" type="button" class="button secondary">REFRESH LIBRARY</button><button id="clearMissing" type="button" class="button tertiary">REMOVE MISSING ENTRIES</button></div>
+        <div id="recordList" class="record-list"><p class="empty">No recordings yet.</p></div>
+      </div>
+    </section>
+    <footer class="footer"><span>MARK I · OFFLINE-FIRST AUDIO ENGINE</span><span id="errorDisplay" role="alert"></span></footer>
+  </main>
+  <script src="dashboard.js"></script>
+</body>
+</html>

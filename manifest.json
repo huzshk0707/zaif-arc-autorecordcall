@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "ZAIF // ARC — MARK I",
+  "short_name": "ZAIF ARC",
+  "version": "0.1.0",
+  "description": "Site-scoped call audio recorder with a cinematic ZAIF startup.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "activeTab",
+    "tabCapture",
+    "offscreen",
+    "storage",
+    "downloads",
+    "scripting",
+    "tabs"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_title": "ZAIF ARC · Click to arm / disarm this tab"
+  },
+  "options_page": "src/dashboard.html"
+}
