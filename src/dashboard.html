@@ -39,7 +39,7 @@
         <div class="reactor-outer"></div><div class="reactor-ticks"></div>
         <div class="reactor-core"><span class="reactor-z">Z</span></div>
       </div>
-      <div class="hero-copy"><span class="eyebrow">YOUR LITTLE SOUND UNIVERSE <span aria-hidden="true">✦</span></span><h1>ZAIF <em>// ARC</em></h1><span class="edition-chip">✿ &nbsp; FIZU EDITION &nbsp; ✿</span><p>A softer little place to keep every conversation.</p>
+      <div class="hero-copy"><span class="eyebrow">YOUR LITTLE SOUND UNIVERSE <span aria-hidden="true">✦</span></span><h1>ZAIF <em>// ARC</em></h1>
         <div class="hero-status"><span id="stateLabel">Awaiting site configuration</span><span id="recordingDot" class="small-dot"></span></div>
         <p class="tiny">Click the extension toolbar icon on the configured call tab to arm or disarm capture.</p>
         <div class="hero-actions"><button id="startBtn" type="button" class="button primary">START RECORDING</button><button id="stopBtn" type="button" class="button secondary">STOP</button><button id="disarmBtn" type="button" class="button tertiary">DISARM</button></div>
@@ -50,9 +50,9 @@
         <div class="panel-title"><h2>✿ &nbsp; MAKE IT YOURS</h2><span class="section-tag">YOUR CALL SITE</span></div>
         <label for="siteOrigin">Call website URL</label>
         <input id="siteOrigin" type="url" placeholder="https://calls.example.com" autocomplete="off">
-        <label for="callSelector">In-call indicator CSS selector</label>
-        <input id="callSelector" type="text" placeholder='e.g. button[aria-label="Leave call"]' autocomplete="off">
-        <p class="help">The recorder starts when this element appears on the selected website and stops when it disappears. Each calling website needs a verified selector.</p>
+        <label for="callSelector">In-call indicator CSS selector (optional)</label>
+        <input id="callSelector" type="text" placeholder="Leave blank for manual ChatGPT test" autocomplete="off">
+        <p class="help">To test with ChatGPT, leave this blank, disable auto-record, arm the ChatGPT tab using the extension icon, then start and stop recording here. Automatic call detection needs a verified selector from that site.</p>
         <div class="checks"><label><input id="autoRecord" type="checkbox" checked> Auto-record detected calls</label><label><input id="includeMicrophone" type="checkbox" checked> Include my microphone</label></div>
         <div class="button-row"><button id="saveSite" type="button" class="button primary">SAVE & ENABLE SITE</button><button id="testMic" type="button" class="button secondary">TEST MIC PERMISSION</button></div>
         <p id="configMessage" class="info" role="status"></p>

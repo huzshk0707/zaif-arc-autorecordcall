@@ -14,7 +14,7 @@ Press **INITIALIZE SYSTEM** to play the original synthesized three-tone chime. T
 - Premium dark-plum interface with pastel pink, lilac, cyan, and cream highlights.
 - Reactor-inspired ZAIF core with subtle panda-ear shape; small panda-with-headphones mascot in the header and empty library.
 - Delicate blossom illustration and slow, restrained sparkles; animations honor `prefers-reduced-motion`.
-- Approved copy: `Your recordings will live here ✨`, `Recording started ✨`, `Saved successfully ♡`, and `Let’s get everything ready.`.
+- Approved copy: `Your recordings will live here ✨`, `Recording started ✨`, and `Saved successfully ♡`.
 - The saved message appears only when Chrome reports a completed download, not merely on call end.
 - No third-party assets, fonts, backend, or telemetry.
 
@@ -34,9 +34,11 @@ Press **INITIALIZE SYSTEM** to play the original synthesized three-tone chime. T
 3. Turn on **Developer mode**; choose **Load unpacked** and select the folder containing `manifest.json`.
 4. Chrome should open the dashboard. Click **INITIALIZE SYSTEM** on the first launch.
 5. Enter the call website origin, e.g. `https://calls.example.com`.
-6. Add a valid **in-call CSS selector** that is present only while an actual call is active, e.g. `button[aria-label="Leave call"]`. **This is a placeholder, not a validated selector**. We need the specific calling website to select and test one.
+6. The **in-call CSS selector is optional**. For a manual ChatGPT microphone test use `https://chatgpt.com` as the website URL, leave the selector blank, and switch **Auto-record detected calls** off. For automatic recording, supply a verified selector that is present only during a call; e.g. `button[aria-label="Leave call"]` is an illustration, **not a verified ChatGPT selector**.
 7. Press **SAVE & ENABLE SITE**, approve that site's permission, and **TEST MIC PERMISSION** if microphone recording is enabled.
 8. Open the configured call website tab. Click the **ZAIF extension toolbar icon** to arm (badge: `ARM`). Click it again to disarm. If the selector is verified, recording starts/stops with call presence; otherwise use Start/Stop from Chrome Extensions → ZAIF ARC → Extension options.
+
+**ChatGPT mic test:** The square Stop icon shown by ChatGPT does not itself reveal the DOM selector. Set `https://chatgpt.com`, leave selector empty, arm the ChatGPT tab by clicking the ZAIF toolbar icon, open the extension options, press **START RECORDING**, speak into the mic, then press **STOP** in ZAIF. Check that a `.webm` file appears in the library. To attempt automatic detection later, inspect ChatGPT’s active stop button in Chrome DevTools and use **Copy → Copy selector**; test that it appears only during dictation. Chrome's UI can change, so treat this as an experimental trigger, not a supported call adapter.
 
 **Tip:** Pin the ZAIF ARC extension so its `ARM` and `REC` badges remain visible. The dashboard can be opened from the extension's Details → Extension options.
 
