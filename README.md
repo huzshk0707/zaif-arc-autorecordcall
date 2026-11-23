@@ -45,7 +45,7 @@ The separate transcription page processes English speech with **Whisper Tiny Eng
 **B. Build from the source ZIP (requires Node.js 20+):**
 
 ```sh
-npm install
+npm install --ignore-scripts
 npm run setup
 npm test
 npm run verify:runtime

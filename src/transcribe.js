@@ -39,7 +39,7 @@ async function checkRuntime() {
     setStatus("Offline Whisper runtime ready. Transcription uses CPU/WASM.");
   } catch {
     runtimeReady = false;
-    setStatus("Local Whisper runtime is missing. In the extension folder, run: npm install && npm run setup. Then reload Chrome extension.", true);
+    setStatus("Local Whisper runtime is missing. In the extension folder, run: npm install --ignore-scripts && npm run setup. Then reload Chrome extension.", true);
   }
   updateButtons();
 }
