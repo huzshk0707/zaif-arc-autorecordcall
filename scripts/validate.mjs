@@ -129,7 +129,7 @@ const sandbox = {
   self: { postMessage: message => messages.push(message) }
 };
 const testWorkerSource = workerSource
-  .replace(/^import\s*\{\s*env,\s*pipeline\s*\}\s*from\s*["']@huggingface\/transformers["'];\s*/, "")
+  .replace('import { env, pipeline } from "@huggingface/transformers";', "")
   .replace(/import\.meta\.url/g, JSON.stringify("chrome-extension://test-extension/lib/whisper-worker.mjs"));
 new vm.Script(testWorkerSource, { filename: "src/whisper-worker-entry.js" }).runInNewContext(sandbox);
 assert.equal(typeof sandbox.self.onmessage, "function", "Whisper worker message handler unavailable");
