@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ZAIF // ARC — FIZU Edition",
   "short_name": "ZAIF ARC",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Offline-first, site-scoped call recorder with a cute futuristic FIZU Edition dashboard.",
   "minimum_chrome_version": "116",
   "permissions": [

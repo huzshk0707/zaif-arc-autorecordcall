@@ -188,11 +188,9 @@ body{
   box-shadow:0 0 35px #e4b8ec5e,inset 0 0 35px #e9bbef42;
   animation:spin 24s linear infinite
 }
-.intro-ring-heart{position:absolute;inset:0;display:grid;place-items:center;color:#ffdfef;font-size:72px;line-height:1;text-shadow:0 0 20px #eab4e4;animation:counterspin 24s linear infinite}
+.intro-ring-panda{position:absolute;inset:0;margin:auto;width:100px;height:100px;object-fit:contain;filter:drop-shadow(0 0 18px rgba(255,210,240,.45));animation:counterspin 24s linear infinite}
 .boot-lines p{font-size:12px;color:#d8f6f5;line-height:1.7}
 .boot-lines h1{margin:19px 0 9px;color:#fff6fc;font-size:clamp(30px,6vw,47px);font-weight:850;text-shadow:0 0 22px #efb4e9aa}
-.intro-subtitle{color:#f4d7ec;font-size:13px;letter-spacing:.05em;margin:0 0 27px}
-.intro-subtitle span{color:#c3f8f4}
 .intro-blossom{position:absolute;color:#f1bedd;font-size:36px;pointer-events:none;animation:panda-float 7s ease-in-out infinite}
 .intro-blossom-a{left:3%;top:17%}
 .intro-blossom-b{right:5%;top:40%;font-size:28px;opacity:.7;animation-delay:1.4s}
@@ -236,6 +234,6 @@ body{
   .footer{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){
-  .intro-ring,.intro-ring-heart,.intro-blossom,.header-companion img,.empty-mascot,.orbit-spark,.orbit-petal{animation:none}
+  .intro-ring,.intro-ring-panda,.intro-blossom,.header-companion img,.empty-mascot,.orbit-spark,.orbit-petal{animation:none}
   .toast,.button{transition:none}
 }

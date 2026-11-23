@@ -1,6 +1,6 @@
 {
   "name": "zaif-arc-autorecordcall",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "ZAIF ARC Chrome extension",
   "scripts": {

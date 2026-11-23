@@ -18,6 +18,10 @@ for (const id of [...js.matchAll(/\$\("([a-zA-Z0-9]+)"\)/g)].map(x => x[1])) {
   assert.ok(html.includes('id="' + id + '"'), "Missing HTML control " + id);
 }
 assert.ok(html.includes("WELCOME, FIZU."));
+assert.ok(html.includes('class="intro-ring-panda"'), "Panda replaces the heart on the intro ring");
+assert.ok(html.includes('src="../assets/panda-headphones.svg"'), "Intro uses local panda illustration");
+assert.ok(!html.includes("intro-ring-heart"), "Old intro heart removed");
+assert.ok(!html.includes("A little sparkle, just for you"), "Old intro subtitle removed");
 assert.ok(html.includes("INITIALIZING ZAIF PROTOCOL..."));
 assert.ok(html.includes("AUTHORIZED PERSON DETECTED..."));
 assert.ok(!html.includes("SYSTEM MESSAGE"));
@@ -29,6 +33,9 @@ const theme = read("src/fizu-theme.css");
 const panda = read("assets/panda-headphones.svg");
 const blossom = read("assets/blossom-sprig.svg");
 assert.ok(theme.includes("prefers-reduced-motion"), "Respect reduced motion setting");
+assert.ok(theme.includes(".intro-ring-panda"), "Panda ring CSS must exist");
+assert.ok(!theme.includes("intro-ring-heart"), "Old heart CSS must be removed");
+assert.ok(!theme.includes(".intro-subtitle"), "Unused intro subtitle CSS must be removed");
 assert.ok(theme.includes("../assets/blossom-sprig.svg"), "Floral artwork must be local");
 assert.ok(panda.includes("<svg") && panda.includes("headphones"), "Panda SVG missing");
 assert.ok(blossom.includes("<svg"), "Blossom SVG missing");
