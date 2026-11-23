@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "ZAIF // ARC — FIZU Edition",
   "short_name": "ZAIF ARC",
-  "version": "0.2.2",
-  "description": "Offline-first, site-scoped call recorder with a cute futuristic FIZU Edition dashboard.",
+  "version": "0.3.0",
+  "description": "FIZU Edition Chrome audio recorder with optional on-device Whisper transcripts.",
   "minimum_chrome_version": "116",
   "permissions": [
     "activeTab",
@@ -24,5 +24,8 @@
   "action": {
     "default_title": "ZAIF ARC · Click to arm / disarm this tab"
   },
-  "options_page": "src/dashboard.html"
+  "options_page": "src/dashboard.html",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
 }

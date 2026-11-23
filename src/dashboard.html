@@ -59,7 +59,9 @@
       <div class="panel">
         <div class="panel-title"><h2>♡ &nbsp; YOUR RECORDINGS</h2><span class="section-tag">SAVED MOMENTS</span></div>
         <div class="stat-grid"><div><span>RECORDINGS</span><strong id="recordCount">0</strong></div><div><span>FILE SIZE TOTAL</span><strong id="totalSize">0 MB</strong></div></div>
-        <div class="button-row"><button id="refreshLibrary" type="button" class="button secondary">REFRESH LIBRARY</button><button id="clearMissing" type="button" class="button tertiary">REMOVE MISSING ENTRIES</button></div>
+        <div class="button-row"><button id="refreshLibrary" type="button" class="button secondary">REFRESH LIBRARY</button><button id="clearMissing" type="button" class="button tertiary">REMOVE MISSING ENTRIES</button><button id="importAudio" type="button" class="button secondary">IMPORT & TRANSCRIBE</button></div>
+        <p class="help">Whisper transcription runs on your computer after one-time model setup. Temporary audio copies can take extra space until transcribed.</p>
+        <div class="button-row"><button id="clearTranscriptionCopies" type="button" class="button tertiary">CLEAR TEMPORARY AUDIO COPIES</button></div>
         <div id="recordList" class="record-list"></div>
       </div>
     </section>

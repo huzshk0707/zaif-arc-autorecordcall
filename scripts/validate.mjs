@@ -65,4 +65,24 @@ assert.equal(manifestVersion, JSON.parse(read("package.json")).version);
 const originalBackendPaths = ["src/background.js", "src/offscreen.js", "src/call-detector.js"];
 assert.equal(originalBackendPaths.length, 3); // Backend remains present and untouched by this UI-only change
 assert.ok(!html.includes("Everything is under control, sweetheart"));
+// Transcription is entirely optional to the recording path.
+assert.ok(manifest.content_security_policy.extension_pages.includes("'wasm-unsafe-eval'"), "Local Whisper WASM must be enabled by CSP");
+assert.ok(read("src/dashboard.html").includes('id="importAudio"'), "Import entry point missing");
+assert.ok(read("src/dashboard.js").includes('TRANSCRIBE'), "Per-recording transcription action missing");
+assert.ok(read("src/offscreen.html").includes('src="audio-store.js"'), "Offscreen audio cache missing");
+assert.ok(read("src/offscreen.js").includes("ZaifAudioStore.putAudio"), "Saved calls must cache audio once for transcription");
+assert.ok(read("src/background.js").includes("ZaifAudioStore.deleteRecording"), "Deleting calls must clear transcripts/audio");
+const transcriptHtml = read("src/transcribe.html");
+const transcriptJs = read("src/transcribe.js");
+assert.ok(transcriptHtml.includes('id="transcribeBtn"'));
+assert.ok(transcriptHtml.includes('id="audioFile"'));
+assert.ok(transcriptHtml.includes('id="copyBtn"') && transcriptHtml.includes('id="downloadBtn"'));
+for (const filename of ["src/audio-store.js", "src/transcribe.js", "src/whisper-worker-entry.js"]) {
+  const { spawnSync } = await import("node:child_process");
+  const child = spawnSync(process.execPath, ["--check", filename], { encoding: "utf-8" });
+  assert.equal(child.status, 0, filename + " syntax error: " + child.stderr);
+}
+assert.ok(read("src/whisper-worker-entry.js").includes('env.allowRemoteModels = false'), "Model must not request hosted inference");
+assert.ok(read("scripts/setup-whisper.mjs").includes("encoder_model_quantized.onnx"), "Offline model files missing");
+assert.ok(transcriptJs.includes("ZaifAudioStore") || transcriptJs.includes("globalThis.ZaifAudioStore"), "Transcription must use local store");
 console.log("ZAIF ARC static checks passed.");

@@ -1,0 +1,32 @@
+name: Build offline ZAIF extension
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned JS dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate source
+        run: npm test
+      - name: Bundle Whisper and model for offline use
+        run: npm run setup
+      - name: Validate locally packaged assets
+        run: npm run verify:runtime
+      - name: Create installable unpacked-extension ZIP
+        run: zip -q -r zaif-arc-fizu-offline.zip manifest.json src assets lib
+      - name: Upload installable extension ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: zaif-arc-fizu-offline
+          path: zaif-arc-fizu-offline.zip
+          if-no-files-found: error
+          retention-days: 30

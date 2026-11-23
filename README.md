@@ -28,6 +28,50 @@ Press **INITIALIZE SYSTEM** to play the original synthesized three-tone chime. T
 - Dashboard library with open, delete (file **and** entry), missing-file refresh, recording count and size estimates.
 - No backend, subscriptions, or AI services.
 
+## New in v0.3.0 — local Whisper transcription
+
+ZAIF has a **TRANSCRIBE** button beside each recording, plus **IMPORT & TRANSCRIBE** for existing files.
+The separate transcription page processes English speech with **Whisper Tiny English** using local ONNX Runtime Web (CPU/WASM). No account, API key or cloud transcription. After transcription it saves text locally and lets you **Copy** or **Download .txt**.
+
+### Choose either installation route
+
+**A. Easiest: prebuilt GitHub Actions ZIP (no Node on your PC):**
+
+1. Open the repository **Actions** tab and the latest successful **Build offline ZAIF extension** run on `main`.
+2. In the run's **Artifacts**, download `zaif-arc-fizu-offline`. Extract its outer archive, then extract the included `zaif-arc-fizu-offline.zip`.
+3. Open `chrome://extensions`, enable Developer mode and **Load unpacked** the extracted folder with `manifest.json`.
+4. If upgrading, replace the files in your current unpacked folder and click **Reload**. Keep the extension ID/profile consistent to preserve your current recording library.
+
+**B. Build from the source ZIP (requires Node.js 20+):**
+
+```sh
+npm install
+npm run setup
+npm test
+npm run verify:runtime
+```
+
+Then open `chrome://extensions` and **Load unpacked** the source folder. The setup script downloads the pinned Xenova/whisper-tiny.en model and copies the bundled local WASM/JS runtime into `lib/`. The folder is ignored by Git to avoid storing 40+ MB of model files in source control. The **normal repository ZIP alone does not include Whisper**, so do not skip setup.
+
+### How to transcribe
+
+1. Record and **STOP** a call; make sure its WebM file is saved in Downloads.
+2. In ZAIF's recording library click **TRANSCRIBE** on that recording.
+3. Wait for the model to load and transcription to finish. Copy the result or download it as a text file.
+4. A temporary audio copy in Chrome's IndexedDB makes one-click transcription possible; **after successfully saving the text, ZAIF deletes that temporary copy**. The downloaded WebM file remains untouched.
+5. To transcribe again, choose the WebM file via **Import audio or video**. Older pre-v0.3 recordings can always be imported.
+6. **CLEAR TEMPORARY AUDIO COPIES** discards untranscribed in-browser audio copies without touching your Downloads or any saved transcripts. Removing a recording from within ZAIF deletes its file, library metadata, and local transcript.
+
+### Honest limitations
+
+- **No automatic speaker labels in v0.3.0.** ZAIF currently mixes microphone and tab audio; calling participants "You" and "Caller" without separate channels would be misleading. A future version can capture isolated stereo channels.
+- **No speech-to-text while recording.** Processing happens afterward on the transcription page.
+- The local model (English Tiny, about 40 MB in q8) is relatively small and may mishear names, accents, or noisy calls. The first transcription may take longer. CPU/WASM works without WebGPU; no GPU performance promise.
+- **Desktop Chrome only.** Media decoding depends on which formats Chrome can decode. Files up to 300 MB / 120 minutes are accepted by UI, but long calls can require substantial memory.
+- The GitHub workflow checks static code and packaged assets; it cannot prove real microphone/recording or Whisper inference works in a person's Chrome profile.
+- Running `npm run setup` or fetching the GitHub artifact needs internet once; afterward models and inference are entirely local. No network access is requested by the extension for transcription.
+- A downloaded recording may still appear in the library if you manually delete the file from the Downloads folder. Use **REFRESH LIBRARY** and **REMOVE MISSING ENTRIES** to clean up; temporary copies/transcripts of missing entries will be removed too.
+
 ## Install locally
 1. Clone or download this repository to your PC and extract it.
 2. Open `chrome://extensions` in a recent Chrome (116+).
@@ -56,4 +100,4 @@ Press **INITIALIZE SYSTEM** to play the original synthesized three-tone chime. T
 Download the updated repository or pull the latest `main`. Then visit `chrome://extensions` → ZAIF ARC → **Reload**. Existing recording metadata and site preferences stay in the Chrome extension profile. The new FIZU welcome sequence appears once.
 
 ## Developer
-No dependencies, no server, no remote scripts. For static checks run `npm test` (requires Node.js 20+). Chrome docs: [tabCapture](https://developer.chrome.com/docs/extensions/reference/api/tabCapture), [offscreen](https://developer.chrome.com/docs/extensions/reference/api/offscreen), [downloads](https://developer.chrome.com/docs/extensions/reference/api/downloads).
+The recording engine remains dependency-free, while optional local transcription uses bundled Transformers.js and ONNX WASM. For source checks run `npm test` (requires Node.js 20+). Use `npm run setup` to package local inference resources. No remote script execution is allowed in Manifest V3. Chrome docs: [tabCapture](https://developer.chrome.com/docs/extensions/reference/api/tabCapture), [offscreen](https://developer.chrome.com/docs/extensions/reference/api/offscreen), [downloads](https://developer.chrome.com/docs/extensions/reference/api/downloads).
