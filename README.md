@@ -59,7 +59,7 @@ It does not replace a real Chrome inference test.
 ## New in v0.3.0 — local Whisper transcription
 
 ZAIF has a **TRANSCRIBE** button beside each recording, plus **IMPORT & TRANSCRIBE** for existing files.
-The separate transcription page processes English speech with **Whisper Tiny English** using local ONNX Runtime Web (CPU/WASM). No account, API key or cloud transcription. After transcription it saves text locally and lets you **Copy** or **Download .txt**.
+The separate transcription page processes English speech with **Fast — Whisper Tiny English** or **Accurate — Whisper Base English** using local ONNX Runtime Web (CPU/WASM). No account, API key or cloud transcription. After transcription it saves text locally and lets you **Copy** or **Download .txt**.
 
 ### Choose either installation route
 
@@ -79,7 +79,7 @@ npm test
 npm run verify:runtime
 ```
 
-Then open `chrome://extensions` and **Load unpacked** the source folder. The setup script downloads the pinned Xenova/whisper-tiny.en model and copies the bundled local WASM/JS runtime into `lib/`. The folder is ignored by Git to avoid storing 40+ MB of model files in source control. The **normal repository ZIP alone does not include Whisper**, so do not skip setup.
+Then open `chrome://extensions` and **Load unpacked** the source folder. The setup script downloads the pinned Tiny English and Base English models and copies the bundled local WASM/JS runtime into `lib/`. The folder is ignored by Git to avoid storing 40+ MB of model files in source control. The **normal repository ZIP alone does not include Whisper**, so do not skip setup.
 
 ### How to transcribe
 
@@ -94,8 +94,8 @@ Then open `chrome://extensions` and **Load unpacked** the source folder. The set
 
 - **No automatic speaker labels in v0.3.0.** ZAIF currently mixes microphone and tab audio; calling participants "You" and "Caller" without separate channels would be misleading. A future version can capture isolated stereo channels.
 - **No speech-to-text while recording.** Processing happens afterward on the transcription page.
-- The local model (English Tiny, about 40 MB in q8) is relatively small and may mishear names, accents, or noisy calls. The first transcription may take longer. CPU/WASM works without WebGPU; no GPU performance promise.
-- **Desktop Chrome only.** The browser transcription page limits input to 20 MB / 20 minutes to avoid excessive CPU and memory use. The recorder itself supports much longer calls when streaming to a computer folder.
+- Both English models use q8 weights. Base takes more memory and processing time. Either model may mishear names, accents, or noisy calls. The first transcription may take longer. CPU/WASM works without WebGPU; no GPU performance promise.
+- **Desktop Chrome only.** The browser transcription page limits input to 20 MB / 20 minutes for Tiny or 8 minutes for Base to avoid excessive CPU and memory use. The recorder itself supports much longer calls when streaming to a computer folder.
 - The GitHub workflow checks static code and packaged assets; it cannot prove real microphone/recording or Whisper inference works in a person's Chrome profile.
 - Running `npm run setup` or fetching the GitHub artifact needs internet once; afterward models and inference are entirely local. No network access is requested by the extension for transcription.
 - A downloaded recording may still appear in the library if you manually delete the file from the Downloads folder. Use **REFRESH LIBRARY** and **REMOVE MISSING ENTRIES** to clean up; temporary copies/transcripts of missing entries will be removed too.
@@ -129,3 +129,5 @@ Download the updated repository or pull the latest `main`. Then visit `chrome://
 
 ## Developer
 The recording engine remains dependency-free, while optional local transcription uses bundled Transformers.js and ONNX WASM. For source checks run `npm test` (requires Node.js 20+). Use `npm run setup` to package local inference resources. No remote script execution is allowed in Manifest V3. Chrome docs: [tabCapture](https://developer.chrome.com/docs/extensions/reference/api/tabCapture), [offscreen](https://developer.chrome.com/docs/extensions/reference/api/offscreen), [downloads](https://developer.chrome.com/docs/extensions/reference/api/downloads).
+
+The worker processes contiguous segments up to 28 seconds long. For longer audio it selects the quietest 40 ms frame between 20 and 27 seconds and cuts at its midpoint. Segments have zero overlap, so each sample reaches one segment and repeated speech is preserved during assembly. A continuous utterance may cross a cut. The worker skips very low-level segments and steady low-level broadband room tone. It evaluates 20 ms frames to protect brief quiet speech and reports skipped duration. This heuristic can miss unusually faint signals. An empty recognition on any other segment stops the job before saving. Progress shows the processed audio duration.

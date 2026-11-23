@@ -8,6 +8,8 @@ let recordedBlob = null;
 let sourceName = "";
 let lastTranscript = "";
 let activeWorker = null;
+let rejectWorker = null;
+let saving = false;
 let currentJob = 0;
 let busy = false;
 let runtimeReady = false;
@@ -21,7 +23,9 @@ function fileNameForText(name) {
 function currentBlob() { return chosenFile || recordedBlob; }
 function updateButtons() {
   $("transcribeBtn").disabled = busy || !runtimeReady || !currentBlob();
-  $("cancelBtn").disabled = !busy;
+  $("cancelBtn").disabled = !busy || saving;
+  $("audioFile").disabled = busy;
+  $("modelMode").disabled = busy;
   $("copyBtn").disabled = !lastTranscript;
   $("downloadBtn").disabled = !lastTranscript;
 }
@@ -81,44 +85,48 @@ $("audioFile").addEventListener("change", () => {
   }
   updateButtons();
 });
-async function decodeToMono16k(blob) {
+async function decodeToMono16k(blob, mode) {
   if (blob.size > 20 * 1024 * 1024) throw new Error("This recording is too large for safe in-browser transcription (20 MB limit). The original recording remains on your computer. Use a local desktop transcription tool for long calls.");
   setStatus("Decoding audio and preparing 16 kHz waveform…");
-  const context = new AudioContext();
+  const context = new AudioContext({ sampleRate: 16000 });
   let audio;
   try { audio = await context.decodeAudioData(await blob.arrayBuffer()); }
   catch (err) { throw new Error("Chrome could not decode this audio file. Try exporting it as WAV, MP3, or WebM audio. " + err.message); }
   finally { await context.close().catch(() => {}); }
   if (!audio.duration || audio.duration > 1200) throw new Error("For Chrome performance, transcribe clips of 20 minutes or less. The recording itself is unchanged.");
-  const length = Math.ceil(audio.duration * 16000);
-  const offline = new OfflineAudioContext(1, length, 16000);
-  const source = offline.createBufferSource();
-  source.buffer = audio;
-  source.connect(offline.destination);
-  source.start();
-  const resampled = await offline.startRendering();
-  // Copy samples; Web Worker transfer detaches this buffer.
-  return new Float32Array(resampled.getChannelData(0));
+  if (mode === "base" && audio.duration > 480) throw new Error("Base English supports up to 8 minutes. Choose Fast — Tiny English for this recording.");
+  const mono = audio.getChannelData(0);
+  for (let channel = 1; channel < audio.numberOfChannels; channel++) {
+    const samples = audio.getChannelData(channel);
+    for (let i = 0; i < mono.length; i++) mono[i] += samples[i];
+  }
+  if (audio.numberOfChannels > 1) {
+    for (let i = 0; i < mono.length; i++) mono[i] /= audio.numberOfChannels;
+  }
+  return mono;
 }
 async function transcribe() {
   if (busy) return;
+  const mode = $("modelMode").value;
   const blob = currentBlob();
   if (!blob) { setStatus("Choose a recording or import an audio/video file first.", true); return; }
   if (!runtimeReady) { setStatus("Install the local Whisper runtime first with npm run setup.", true); return; }
   busy = true; updateButtons();
   const jobId = ++currentJob;
   try {
-    const pcm = await decodeToMono16k(blob);
+    const pcm = await decodeToMono16k(blob, mode);
     if (jobId !== currentJob) return;
     setStatus("Starting Whisper worker…");
-    const text = await new Promise((resolve, reject) => {
+    const { text, quietSeconds } = await new Promise((resolve, reject) => {
       const worker = new Worker(workerURL, { type: "module", name: "zaif-whisper" });
       activeWorker = worker;
+      rejectWorker = reject;
       worker.onerror = event => {
         event.preventDefault();
         reject(new Error(event.message || "Whisper worker failed to load."));
       };
       worker.onmessage = ({ data }) => {
+        if (currentJob !== jobId) return;
         if (data.jobId && data.jobId !== jobId) return;
         if (data.type === "STATUS") setStatus(data.message);
         if (data.type === "PROGRESS") {
@@ -126,13 +134,15 @@ async function transcribe() {
           $("transcribeProgress").value = Math.max(0, Math.min(100, data.percent || 0));
           setStatus(data.message);
         }
-        if (data.type === "RESULT") resolve(data.text);
+        if (data.type === "RESULT") resolve(data);
         if (data.type === "ERROR") reject(new Error(data.message));
       };
-      worker.postMessage({ type: "TRANSCRIBE", jobId, audio: pcm }, [pcm.buffer]);
+      worker.postMessage({ type: "TRANSCRIBE", jobId, mode, audio: pcm }, [pcm.buffer]);
     });
     if (jobId !== currentJob) return;
     if (!text) throw new Error("Whisper returned no speech. Please verify the recording contains audible voices.");
+    saving = true;
+    updateButtons();
     const id = recordingId || "import:" + crypto.randomUUID();
     const entry = { id, text, filename: sourceName || "Imported recording", createdAt: Date.now() };
     await store.putTranscript(entry);
@@ -148,10 +158,13 @@ async function transcribe() {
       }
     }
     displayText(text, sourceName, "Saved on this device");
-    setStatus("Transcription completed ♡");
+    setStatus("Transcription completed ♡" + (quietSeconds ? " · Skipped " + quietSeconds.toFixed(1) + " seconds of near-silence." : ""));
   } catch (error) {
     if (jobId === currentJob) setStatus("Transcription failed: " + (error?.message || error), true);
   } finally {
+    if (jobId !== currentJob) return;
+    saving = false;
+    rejectWorker = null;
     activeWorker?.terminate();
     activeWorker = null;
     $("transcribeProgress").hidden = true;
@@ -163,6 +176,8 @@ $("transcribeBtn").addEventListener("click", transcribe);
 $("cancelBtn").addEventListener("click", () => {
   if (!busy) return;
   currentJob++;
+  rejectWorker?.(new Error("Cancelled"));
+  rejectWorker = null;
   activeWorker?.terminate();
   activeWorker = null;
   busy = false;

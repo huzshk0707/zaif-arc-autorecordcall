@@ -4,7 +4,7 @@
   "private": true,
   "description": "ZAIF ARC — local call recording and optional Whisper Tiny transcription",
   "scripts": {
-    "test": "node scripts/validate.mjs",
+    "test": "node scripts/validate.mjs && node --test scripts/transcription-page.test.mjs",
     "setup": "node scripts/setup-whisper.mjs",
     "verify:runtime": "node scripts/verify-whisper.mjs"
   },
