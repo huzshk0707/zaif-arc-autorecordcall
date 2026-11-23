@@ -1,4 +1,4 @@
-# ZAIF // ARC — FIZU Edition (MARK I · v0.4.0)
+# ZAIF // ARC — FIZU Edition (MARK I · v0.4.1)
 
 A site-scoped, offline-first **Chrome Manifest V3** audio call recorder with a soft futuristic dashboard, a tiny headphone panda, and delicate blossom accents. The recording engine and permissions stay the same.
 
@@ -27,6 +27,23 @@ Press **INITIALIZE SYSTEM** to play the original synthesized three-tone chime. T
 - Save completed recordings as `.webm` audio under `Downloads/ZAIF ARC/<site>/`.
 - Dashboard library with open, delete (file **and** entry), missing-file refresh, recording count and size estimates.
 - No backend, subscriptions, or AI services.
+
+## v0.4.1 — Whisper English-only transcription fix
+
+Fixed a bug where the English-only `Xenova/whisper-tiny.en` model rejected
+`task: "transcribe"` and `language: "english"` in the ASR worker. Both
+parameters are now omitted for the English-only model; multilingual models
+would require different settings. This resolves the exact error:
+`Cannot specify task or language for an English-only model.`
+
+**Update:** Download the latest successful **Build offline ZAIF extension** artifact
+from `main` (not GitHub's source ZIP), extract it once, replace your existing
+unpacked extension's files, and click **Reload** in `chrome://extensions`.
+Then open a **new** Transcribe tab and import the audio again.
+
+The automated regression test executes the worker message path with a mock
+English-only pipeline to verify that the decoding parameters are compatible.
+It does not replace a real Chrome inference test.
 
 ## New in v0.4.0 — direct computer-folder recording
 

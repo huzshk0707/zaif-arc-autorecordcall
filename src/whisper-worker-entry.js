@@ -39,12 +39,13 @@ self.onmessage = async ({ data }) => {
     }
     const model = await loadModel();
     status("Transcribing on this computer…");
+    // whisper-tiny.en is an English-only model. Transformers.js rejects
+    // language/task overrides for English-only Whisper; those options belong
+    // to multilingual Whisper models, not this one.
     const output = await model(data.audio, {
       chunk_length_s: 30,
       stride_length_s: 5,
-      return_timestamps: false,
-      language: "english",
-      task: "transcribe"
+      return_timestamps: false
     });
     self.postMessage({ type: "RESULT", jobId, text: String(output?.text || "").trim() });
   } catch (error) {
