@@ -87,6 +87,11 @@ async function refreshLibrary() {
       open.addEventListener("click", () => chrome.downloads.open(rec.downloadId));
       buttons.append(open);
     }
+    const transcribe = document.createElement("button"); transcribe.textContent = "TRANSCRIBE";
+    transcribe.addEventListener("click", () => {
+      chrome.tabs.create({ url: chrome.runtime.getURL("src/transcribe.html?recording=" + encodeURIComponent(rec.id)) });
+    });
+    buttons.append(transcribe);
     const del = document.createElement("button"); del.textContent = "DELETE";
     del.addEventListener("click", async () => {
       if (!confirm("Delete this recording's downloaded file and library entry?")) return;
@@ -169,15 +174,17 @@ $("disarmBtn").addEventListener("click", async () => {
   if (!res.ok) errorMessage(res.error); await Promise.all([loadState(), refreshLibrary()]);
 });
 $("refreshLibrary").addEventListener("click", refreshLibrary);
+$("importAudio").addEventListener("click", () => chrome.tabs.create({ url: chrome.runtime.getURL("src/transcribe.html") }));
 $("clearMissing").addEventListener("click", async () => {
-  const { recordings = [] } = await chrome.storage.local.get("recordings");
-  const checked = await request("REFRESH_LIBRARY");
-  if (!checked.ok) return errorMessage(checked.error);
-  const remaining = checked.recordings.filter(item => item.status !== "missing");
-  if (remaining.length !== checked.recordings.length) {
-    await chrome.storage.local.set({ recordings: remaining });
-  }
+  const result = await request("PURGE_MISSING");
+  if (!result.ok) return errorMessage(result.error);
   await refreshLibrary();
+});
+$("clearTranscriptionCopies").addEventListener("click", async () => {
+  if (!confirm("Clear temporary audio copies used for one-click transcription? Downloaded recordings and saved transcripts will be kept. To transcribe afterward, import the saved file.")) return;
+  const result = await request("CLEAR_TRANSCRIPTION_COPIES");
+  if (!result.ok) return errorMessage(result.error);
+  showToast("Temporary audio copies cleared");
 });
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "session" && changes.capture) loadState();

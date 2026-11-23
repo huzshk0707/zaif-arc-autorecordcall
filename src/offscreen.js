@@ -89,6 +89,17 @@ async function stopRecording() {
           const result = await send("SAVE_RECORDING", { url, startedAt: begin, durationMs, bytes: blob.size });
           if (!result?.ok) { URL.revokeObjectURL(url); throw new Error(result?.error || "Download failed"); }
           pendingDownloads.set(result.downloadId, url);
+          // Keep one temporary audio copy for one-click Whisper transcription.
+          // Failure must not prevent the saved download; the user can import the file instead.
+          try {
+            await ZaifAudioStore.putAudio(result.recordingId, blob);
+          } catch (cacheError) {
+            console.warn("Could not cache audio for transcription:", cacheError);
+            await send("RECORDING_STATE", {
+              recording: false,
+              warning: "Downloaded successfully; local transcription copy unavailable. Import saved file to transcribe."
+            });
+          }
         }
         await send("RECORDING_STATE", { recording: false });
         resolve({ ok: true, bytes: blob.size });

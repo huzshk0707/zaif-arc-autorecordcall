@@ -1,0 +1,175 @@
+const $ = id => document.getElementById(id);
+const store = globalThis.ZaifAudioStore;
+const query = new URLSearchParams(location.search);
+const recordingId = query.get("recording");
+const workerURL = chrome.runtime.getURL("lib/whisper-worker.mjs");
+let chosenFile = null;
+let recordedBlob = null;
+let sourceName = "";
+let lastTranscript = "";
+let activeWorker = null;
+let currentJob = 0;
+let busy = false;
+let runtimeReady = false;
+function setStatus(message, error = false) {
+  $("modelStatus").textContent = message;
+  $("modelStatus").classList.toggle("is-error", error);
+}
+function fileNameForText(name) {
+  return (name || "ZAIF-transcript").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._ -]/g, "_") + ".txt";
+}
+function currentBlob() { return chosenFile || recordedBlob; }
+function updateButtons() {
+  $("transcribeBtn").disabled = busy || !runtimeReady || !currentBlob();
+  $("cancelBtn").disabled = !busy;
+  $("copyBtn").disabled = !lastTranscript;
+  $("downloadBtn").disabled = !lastTranscript;
+}
+function displayText(text, name, meta = "") {
+  lastTranscript = text;
+  $("transcriptText").value = text;
+  $("transcriptMeta").textContent = [name || "", meta].filter(Boolean).join(" · ");
+  updateButtons();
+}
+async function checkRuntime() {
+  try {
+    const response = await fetch(workerURL, { cache: "no-cache" });
+    runtimeReady = response.ok && response.headers.get("content-type") !== "text/html";
+    if (!runtimeReady) throw new Error("Not installed.");
+    setStatus("Offline Whisper runtime ready. Transcription uses CPU/WASM.");
+  } catch {
+    runtimeReady = false;
+    setStatus("Local Whisper runtime is missing. In the extension folder, run: npm install --ignore-scripts && npm run setup. Then reload Chrome extension.", true);
+  }
+  updateButtons();
+}
+async function loadRecording() {
+  if (!recordingId) return;
+  const { recordings = [] } = await chrome.storage.local.get("recordings");
+  const recording = recordings.find(item => item.id === recordingId);
+  if (!recording) { setStatus("Recording no longer exists in the ZAIF library. You can still import a local file.", true); return; }
+  sourceName = recording.name;
+  $("selectedInfo").textContent = "ZAIF recording: " + recording.name;
+  const saved = await store.getTranscript(recordingId);
+  if (saved) {
+    displayText(saved.text, saved.filename || recording.name, "Previously transcribed on this device");
+  }
+  recordedBlob = await store.getAudio(recordingId);
+  if (!recordedBlob) {
+    $("selectedInfo").textContent = recording.name + " — temporary audio copy unavailable. Choose its saved file using Import above.";
+  } else {
+    $("selectedInfo").textContent = recording.name + " — ready for local transcription (" + (recordedBlob.size / 1048576).toFixed(1) + " MB)";
+  }
+  updateButtons();
+}
+$("audioFile").addEventListener("change", () => {
+  chosenFile = $("audioFile").files[0] || null;
+  if (chosenFile) {
+    sourceName = chosenFile.name;
+    $("selectedInfo").textContent = chosenFile.name + " — selected from this computer (" + (chosenFile.size / 1048576).toFixed(1) + " MB)";
+    setStatus(runtimeReady ? "File ready. Press TRANSCRIBE." : "Install Whisper runtime before transcribing.");
+  }
+  updateButtons();
+});
+async function decodeToMono16k(blob) {
+  if (blob.size > 300 * 1024 * 1024) throw new Error("This file is too large for in-browser transcription (limit: 300 MB).");
+  setStatus("Decoding audio and preparing 16 kHz waveform…");
+  const context = new AudioContext();
+  let audio;
+  try { audio = await context.decodeAudioData(await blob.arrayBuffer()); }
+  catch (err) { throw new Error("Chrome could not decode this audio file. Try exporting it as WAV, MP3, or WebM audio. " + err.message); }
+  finally { await context.close().catch(() => {}); }
+  if (!audio.duration || audio.duration > 7200) throw new Error("Audio must be between 0 and 120 minutes.");
+  const length = Math.ceil(audio.duration * 16000);
+  const offline = new OfflineAudioContext(1, length, 16000);
+  const source = offline.createBufferSource();
+  source.buffer = audio;
+  source.connect(offline.destination);
+  source.start();
+  const resampled = await offline.startRendering();
+  // Copy samples; Web Worker transfer detaches this buffer.
+  return new Float32Array(resampled.getChannelData(0));
+}
+async function transcribe() {
+  if (busy) return;
+  const blob = currentBlob();
+  if (!blob) { setStatus("Choose a recording or import an audio/video file first.", true); return; }
+  if (!runtimeReady) { setStatus("Install the local Whisper runtime first with npm run setup.", true); return; }
+  busy = true; updateButtons();
+  const jobId = ++currentJob;
+  try {
+    const pcm = await decodeToMono16k(blob);
+    if (jobId !== currentJob) return;
+    setStatus("Starting Whisper worker…");
+    const text = await new Promise((resolve, reject) => {
+      const worker = new Worker(workerURL, { type: "module", name: "zaif-whisper" });
+      activeWorker = worker;
+      worker.onerror = event => {
+        event.preventDefault();
+        reject(new Error(event.message || "Whisper worker failed to load."));
+      };
+      worker.onmessage = ({ data }) => {
+        if (data.jobId && data.jobId !== jobId) return;
+        if (data.type === "STATUS") setStatus(data.message);
+        if (data.type === "PROGRESS") {
+          $("transcribeProgress").hidden = false;
+          $("transcribeProgress").value = Math.max(0, Math.min(100, data.percent || 0));
+          setStatus(data.message);
+        }
+        if (data.type === "RESULT") resolve(data.text);
+        if (data.type === "ERROR") reject(new Error(data.message));
+      };
+      worker.postMessage({ type: "TRANSCRIBE", jobId, audio: pcm }, [pcm.buffer]);
+    });
+    if (jobId !== currentJob) return;
+    if (!text) throw new Error("Whisper returned no speech. Please verify the recording contains audible voices.");
+    const id = recordingId || "import:" + crypto.randomUUID();
+    const entry = { id, text, filename: sourceName || "Imported recording", createdAt: Date.now() };
+    await store.putTranscript(entry);
+    if (recordingId) {
+      await store.deleteAudio(recordingId);
+      recordedBlob = null;
+      chosenFile = null;
+      $("audioFile").value = "";
+      $("selectedInfo").textContent = "Transcript saved. Temporary audio copy cleared to save space.";
+    }
+    displayText(text, sourceName, "Saved on this device");
+    setStatus("Transcription completed ♡");
+  } catch (error) {
+    if (jobId === currentJob) setStatus("Transcription failed: " + (error?.message || error), true);
+  } finally {
+    activeWorker?.terminate();
+    activeWorker = null;
+    $("transcribeProgress").hidden = true;
+    busy = false;
+    updateButtons();
+  }
+}
+$("transcribeBtn").addEventListener("click", transcribe);
+$("cancelBtn").addEventListener("click", () => {
+  if (!busy) return;
+  currentJob++;
+  activeWorker?.terminate();
+  activeWorker = null;
+  busy = false;
+  $("transcribeProgress").hidden = true;
+  setStatus("Transcription cancelled. You can try again.");
+  updateButtons();
+});
+$("copyBtn").addEventListener("click", async () => {
+  if (!lastTranscript) return;
+  try { await navigator.clipboard.writeText(lastTranscript); setStatus("Transcript copied to clipboard."); }
+  catch { setStatus("Clipboard access failed. Select and copy the transcript text manually.", true); }
+});
+$("downloadBtn").addEventListener("click", () => {
+  if (!lastTranscript) return;
+  const url = URL.createObjectURL(new Blob([lastTranscript + "\n"], { type: "text/plain;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = fileNameForText(sourceName);
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+});
+(async () => {
+  await Promise.allSettled([checkRuntime(), loadRecording()]);
+  updateButtons();
+})();

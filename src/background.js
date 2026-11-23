@@ -1,4 +1,5 @@
 // ZAIF ARC — service worker. Toolbar click is the explicit capture authorization.
+importScripts("audio-store.js");
 const DEFAULTS = { siteOrigin: "", callSelector: "", autoRecord: true, includeMicrophone: true };
 const DETECTOR_ID = "zaif-call-detector";
 let creatingOffscreen = null;
@@ -128,7 +129,7 @@ async function saveRecording(data) {
     createdAt: data.startedAt, durationMs: data.durationMs, bytes: data.bytes, status: "saving" };
   await chrome.storage.local.set({ recordings: [entry, ...recordings] });
   // The source Blob URL stays alive in the offscreen document until Chrome finishes the download.
-  return { ok: true, downloadId };
+  return { ok: true, downloadId, recordingId: entry.id };
 }
 chrome.downloads.onChanged.addListener(async change => {
   if (!change.state) return;
@@ -163,6 +164,7 @@ async function deleteRecording(recordId) {
   }
   await chrome.downloads.erase({ id: item.downloadId });
   await chrome.storage.local.set({ recordings: recordings.filter(x => x.id !== recordId) });
+  await ZaifAudioStore.deleteRecording(recordId);
 }
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.target === "offscreen") return false;
@@ -196,6 +198,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return { ok: true };
     }
     if (message.type === "REFRESH_LIBRARY") return { ok: true, recordings: await refreshLibrary() };
+    if (message.type === "PURGE_MISSING") {
+      const items = await refreshLibrary();
+      for (const item of items.filter(x => x.status === "missing")) await ZaifAudioStore.deleteRecording(item.id);
+      await chrome.storage.local.set({ recordings: items.filter(x => x.status !== "missing") });
+      return { ok: true };
+    }
+    if (message.type === "CLEAR_TRANSCRIPTION_COPIES") {
+      const { recordings = [] } = await chrome.storage.local.get("recordings");
+      for (const item of recordings) await ZaifAudioStore.deleteAudio(item.id);
+      return { ok: true };
+    }
     if (message.type === "DELETE_RECORDING") { await deleteRecording(message.id); return { ok: true }; }
     return { ok: false, error: "Unsupported message" };
   })().then(sendResponse, error => sendResponse({ ok: false, error: String(error.message || error) }));

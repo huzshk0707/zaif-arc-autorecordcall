@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZAIF // ARC — Local transcription</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="fizu-theme.css">
+  <link rel="stylesheet" href="transcribe.css">
+</head>
+<body>
+  <main class="shell transcript-shell">
+    <header class="header">
+      <div class="wordmark"><span class="wordmark-icon" aria-hidden="true">Z</span><div><strong>ZAIF <span>//</span> ARC</strong></div></div>
+      <a href="dashboard.html" class="back-link">← BACK TO RECORDER</a>
+    </header>
+    <section class="transcript-head">
+      <div class="transcript-mascot"><img src="../assets/panda-headphones.svg" width="104" height="104" alt="Panda wearing headphones"></div>
+      <div>
+        <span class="eyebrow">LOCAL WHISPER · ENGLISH</span>
+        <h1>Audio into words <span aria-hidden="true">✦</span></h1>
+        <p>Transcribe a ZAIF recording or choose an audio/video file. Once set up, the audio is processed on this computer.</p>
+      </div>
+    </section>
+    <section class="transcript-grid">
+      <div class="panel transcript-panel">
+        <div class="panel-title"><h2>✿ &nbsp; CHOOSE AUDIO</h2><span class="section-tag">ON-DEVICE</span></div>
+        <p id="selectedInfo" class="source-summary" aria-live="polite">Select a file to begin.</p>
+        <label for="audioFile">Import audio or video</label>
+        <input type="file" id="audioFile" accept="audio/*,video/*,.webm,.mp3,.mp4,.wav,.m4a,.ogg">
+        <p class="help">Recordings made in ZAIF can use their temporary local copy for one-click transcription. For older calls or cleared copies, choose the saved file from Downloads.</p>
+        <div class="button-row transcript-actions">
+          <button type="button" id="transcribeBtn" class="button primary">TRANSCRIBE</button>
+          <button type="button" id="cancelBtn" class="button secondary" disabled>CANCEL</button>
+        </div>
+        <p id="modelStatus" class="transcript-status" role="status" aria-live="polite">Checking local Whisper setup…</p>
+        <progress id="transcribeProgress" value="0" max="100" hidden></progress>
+        <p class="transcript-note">Model: Whisper Tiny English, CPU/WASM. First-time setup uses <code>npm install --ignore-scripts</code> and <code>npm run setup</code>, then transcription works offline. Speaker labels are unavailable for mixed-audio recordings.</p>
+      </div>
+      <div class="panel transcript-panel">
+        <div class="panel-title"><h2>♡ &nbsp; TRANSCRIPT</h2><span class="section-tag">TEXT</span></div>
+        <textarea id="transcriptText" rows="17" spellcheck="false" aria-label="Transcript text" readonly placeholder="Your transcript will appear here…"></textarea>
+        <div class="button-row transcript-actions">
+          <button type="button" id="copyBtn" class="button secondary" disabled>COPY TEXT</button>
+          <button type="button" id="downloadBtn" class="button secondary" disabled>DOWNLOAD .TXT</button>
+        </div>
+        <p id="transcriptMeta" class="help" aria-live="polite"></p>
+      </div>
+    </section>
+  </main>
+  <script src="audio-store.js"></script>
+  <script src="transcribe.js"></script>
+</body>
+</html>
