@@ -1,0 +1,25 @@
+name: Transcription benchmark tests
+on:
+  pull_request:
+    paths:
+      - 'scripts/transcript-quality.mjs'
+      - 'scripts/transcript-quality.test.mjs'
+      - 'scripts/compare-transcripts.mjs'
+      - '.github/workflows/transcript-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/transcript-quality.mjs'
+      - 'scripts/transcript-quality.test.mjs'
+      - 'scripts/compare-transcripts.mjs'
+      - '.github/workflows/transcript-quality.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run offline transcript quality tests
+        run: node --test scripts/transcript-quality.test.mjs
