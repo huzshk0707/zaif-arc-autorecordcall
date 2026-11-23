@@ -1,0 +1,11 @@
+.local-folder-panel{margin-top:24px;position:relative;z-index:2}
+.local-folder-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+.local-folder-heading h2{font-size:13px;letter-spacing:.12em;color:#fff0fd;margin:0 0 10px}
+.local-folder-heading .help{margin:0 0 14px;max-width:670px}
+.folder-status{border:1px solid #bca4d87a;border-radius:14px;background:#9e84c11c;color:#baf8ee;padding:14px 16px;font-size:13px;line-height:1.5;margin:6px 0 20px}
+.folder-status.is-warning{border-color:#e5c094;color:#ffe5c2}
+.local-folder-panel .button-row{gap:10px}
+.local-folder-panel>p.help{max-width:800px;margin:20px 0 0}
+#localAudioPlayer{width:100%;display:block;margin-top:23px;accent-color:#cabaf1}
+#localAudioPlayer[hidden]{display:none}
+@media(max-width:650px){.local-folder-heading{flex-direction:column;gap:9px}}

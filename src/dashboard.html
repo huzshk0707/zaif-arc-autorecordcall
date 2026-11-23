@@ -6,6 +6,7 @@
   <title>ZAIF // ARC — FIZU Edition</title>
   <link rel="stylesheet" href="dashboard.css">
   <link rel="stylesheet" href="fizu-theme.css">
+  <link rel="stylesheet" href="storage.css">
 </head>
 <body>
   <div id="intro" class="intro" hidden>
@@ -65,9 +66,24 @@
         <div id="recordList" class="record-list"></div>
       </div>
     </section>
+    <section class="panel local-folder-panel">
+      <div class="local-folder-heading">
+        <div><h2>LOCAL RECORDING FOLDER</h2><p class="help">Save directly to a folder on this computer. New recordings are written in small chunks instead of buffering the whole call in Chrome.</p></div>
+        <span class="section-tag">LOWER MEMORY</span>
+      </div>
+      <p id="folderStatus" class="folder-status" role="status" aria-live="polite">Checking local folder…</p>
+      <div class="button-row">
+        <button id="chooseFolder" type="button" class="button primary">CHOOSE FOLDER</button>
+        <button id="reconnectFolder" type="button" class="button secondary">RECONNECT ACCESS</button>
+        <button id="clearFolder" type="button" class="button tertiary">USE DOWNLOADS</button>
+      </div>
+      <p class="help">The folder is selected on this device only. Chrome may ask you to authorize it again after restarting. Saved files remain in the folder until you delete them. This doesn't require a separate desktop program.</p>
+      <audio id="localAudioPlayer" controls hidden aria-label="Play locally saved recording"></audio>
+    </section>
     <footer class="footer"><span>ZAIF // ARC · FIZU EDITION · MARK I <span class="footer-spark" aria-hidden="true">✦</span></span><span id="errorDisplay" role="alert"></span></footer>
     <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   </main>
+  <script src="local-files.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

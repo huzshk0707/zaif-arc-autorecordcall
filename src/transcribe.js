@@ -54,9 +54,19 @@ async function loadRecording() {
   if (saved) {
     displayText(saved.text, saved.filename || recording.name, "Previously transcribed on this device");
   }
-  recordedBlob = await store.getAudio(recordingId);
+  if (recording.storage === "folder") {
+    try { recordedBlob = await ZaifLocalFiles.openFile(recordingId); }
+    catch (error) {
+      recordedBlob = null;
+      $("selectedInfo").textContent = recording.name + " — folder unavailable. Reconnect access in the ZAIF dashboard or import this file.";
+    }
+  } else {
+    recordedBlob = await store.getAudio(recordingId);
+  }
   if (!recordedBlob) {
-    $("selectedInfo").textContent = recording.name + " — temporary audio copy unavailable. Choose its saved file using Import above.";
+    if (recording.storage !== "folder") {
+      $("selectedInfo").textContent = recording.name + " — temporary audio copy unavailable. Choose its saved file using Import above.";
+    }
   } else {
     $("selectedInfo").textContent = recording.name + " — ready for local transcription (" + (recordedBlob.size / 1048576).toFixed(1) + " MB)";
   }
@@ -72,14 +82,14 @@ $("audioFile").addEventListener("change", () => {
   updateButtons();
 });
 async function decodeToMono16k(blob) {
-  if (blob.size > 300 * 1024 * 1024) throw new Error("This file is too large for in-browser transcription (limit: 300 MB).");
+  if (blob.size > 20 * 1024 * 1024) throw new Error("This recording is too large for safe in-browser transcription (20 MB limit). The original recording remains on your computer. Use a local desktop transcription tool for long calls.");
   setStatus("Decoding audio and preparing 16 kHz waveform…");
   const context = new AudioContext();
   let audio;
   try { audio = await context.decodeAudioData(await blob.arrayBuffer()); }
   catch (err) { throw new Error("Chrome could not decode this audio file. Try exporting it as WAV, MP3, or WebM audio. " + err.message); }
   finally { await context.close().catch(() => {}); }
-  if (!audio.duration || audio.duration > 7200) throw new Error("Audio must be between 0 and 120 minutes.");
+  if (!audio.duration || audio.duration > 1200) throw new Error("For Chrome performance, transcribe clips of 20 minutes or less. The recording itself is unchanged.");
   const length = Math.ceil(audio.duration * 16000);
   const offline = new OfflineAudioContext(1, length, 16000);
   const source = offline.createBufferSource();
@@ -128,10 +138,14 @@ async function transcribe() {
     await store.putTranscript(entry);
     if (recordingId) {
       await store.deleteAudio(recordingId);
-      recordedBlob = null;
-      chosenFile = null;
-      $("audioFile").value = "";
-      $("selectedInfo").textContent = "Transcript saved. Temporary audio copy cleared to save space.";
+      if (!recordedBlob?.name) { // Cached Downloads audio: forget the temporary copy.
+        recordedBlob = null;
+        chosenFile = null;
+        $("audioFile").value = "";
+        $("selectedInfo").textContent = "Transcript saved. Temporary audio copy cleared to save space.";
+      } else {
+        $("selectedInfo").textContent = "Transcript saved. Original recording stays on your computer.";
+      }
     }
     displayText(text, sourceName, "Saved on this device");
     setStatus("Transcription completed ♡");

@@ -1,4 +1,4 @@
-// Long-lived audio engine. It never starts capture independently of a toolbar click.
+// Long-lived audio engine. An explicit toolbar invocation is always required to arm.
 let tabStream = null;
 let micStream = null;
 let audioContext = null;
@@ -9,6 +9,15 @@ let startedAt = 0;
 let closing = false;
 let tabId = null;
 let recordingPromise = null;
+let startPromise = null;
+let localWriter = null;
+let localRecordingId = null;
+let localName = "";
+let saveMode = "downloads";
+let bytesWritten = 0;
+let pendingBytes = 0;
+let writeQueue = Promise.resolve();
+let writeError = null;
 const pendingDownloads = new Map();
 
 function send(type, data = {}) {
@@ -29,7 +38,7 @@ async function arm({ streamId, includeMicrophone, targetTabId }) {
   output = audioContext.createMediaStreamDestination();
   const capturedTab = audioContext.createMediaStreamSource(tabStream);
   capturedTab.connect(output);
-  // Tab capture mutes normal tab playback; route the captured sound back to speakers.
+  // Captured tab playback is muted unless it is connected back to speakers.
   capturedTab.connect(audioContext.destination);
   await audioContext.resume();
   let warning = "";
@@ -39,7 +48,7 @@ async function arm({ streamId, includeMicrophone, targetTabId }) {
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
       });
       const mic = audioContext.createMediaStreamSource(micStream);
-      mic.connect(output); // Do not play microphone into speakers.
+      mic.connect(output);
     } catch (err) {
       warning = "Microphone unavailable; tab audio only. " + (err.message || "");
     }
@@ -51,64 +60,152 @@ async function arm({ streamId, includeMicrophone, targetTabId }) {
   }
   return { ok: true, micActive: Boolean(micStream), warning };
 }
+async function prepareOutput() {
+  const status = await ZaifLocalFiles.folderStatus().catch(() => ({ configured: false }));
+  saveMode = "downloads";
+  localWriter = null;
+  localRecordingId = null;
+  localName = "";
+  bytesWritten = 0;
+  pendingBytes = 0;
+  writeError = null;
+  writeQueue = Promise.resolve();
+  chunks = [];
+  if (status.configured && status.granted) {
+    const id = crypto.randomUUID();
+    const name = "ZAIF-" + new Date(startedAt).toISOString().replace(/[:.]/g, "-") +
+      "-" + id.slice(0, 8) + ".webm";
+    try {
+      const target = await ZaifLocalFiles.createFile(id, name);
+      if (target) {
+        saveMode = "folder";
+        localWriter = target.writable;
+        localRecordingId = id;
+        localName = name;
+      }
+    } catch (error) {
+      console.warn("Local file unavailable, falling back to Downloads:", error);
+      await send("RECORDING_STATE", {
+        recording: false, warning: "Folder could not be opened; using Downloads instead. " + error.message
+      });
+    }
+  } else if (status.configured) {
+    await send("RECORDING_STATE", {
+      recording: false, warning: "Folder permission expired. Using Downloads (buffered); reconnect the folder in the dashboard."
+    });
+  }
+}
+function queueChunk(blob) {
+  if (!blob?.size) return;
+  if (saveMode !== "folder") {
+    chunks.push(blob);
+    return;
+  }
+  bytesWritten += blob.size;
+  pendingBytes += blob.size;
+  const writable = localWriter;
+  writeQueue = writeQueue.then(async () => {
+    if (writeError) return;
+    await writable.write(blob);
+  }).catch(error => {
+    writeError = error;
+    console.error("File streaming failed:", error);
+  }).finally(() => {
+    pendingBytes -= blob.size;
+  });
+  if (pendingBytes > 48 * 1024 * 1024 && recorder?.state === "recording") {
+    // Don't accumulate unchecked memory if the destination disk stalls.
+    writeError = writeError || new Error("Disk writes are too slow. Recording stopped to avoid memory overload.");
+    // Schedule stop through the normal finalization path rather than calling
+    // MediaRecorder.stop directly (which could leave the local file unclosed).
+    void stopRecording().catch(error => console.error("Automatic safety stop:", error));
+  }
+}
 async function startRecording() {
   if (!tabStream || !output) throw new Error("Capture is not armed.");
   if (recorder && recorder.state !== "inactive") return { ok: true, alreadyRecording: true };
-  const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"]
-    .find(type => MediaRecorder.isTypeSupported(type));
-  if (!mime) throw new Error("No supported audio recording format.");
+  if (startPromise) return startPromise;
+  startPromise = (async () => {
+    const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"]
+      .find(type => MediaRecorder.isTypeSupported(type));
+    if (!mime) throw new Error("No supported audio recording format.");
+    startedAt = Date.now();
+    await prepareOutput();
+    const activeRecorder = new MediaRecorder(output.stream, { mimeType: mime, audioBitsPerSecond: 64000 });
+    recorder = activeRecorder;
+    activeRecorder.ondataavailable = event => queueChunk(event.data);
+    activeRecorder.onerror = event => send("RECORDING_STATE", {
+      recording: false, warning: "Recorder error: " + (event.error?.message || "unknown")
+    });
+    activeRecorder.start(2000);
+    await send("RECORDING_STATE", { recording: true });
+    return { ok: true, mode: saveMode };
+  })().finally(() => { startPromise = null; });
+  return startPromise;
+}
+async function persistResult(durationMs) {
+  if (saveMode === "folder") {
+    await writeQueue;
+    if (writeError) throw writeError;
+    await localWriter.close();
+    localWriter = null;
+    if (bytesWritten > 0) {
+      const result = await send("SAVE_LOCAL_RECORDING", {
+        recordingId: localRecordingId, name: localName,
+        startedAt, durationMs, bytes: bytesWritten
+      });
+      if (!result?.ok) throw new Error(result?.error || "Saved file, but the library could not register it.");
+    } else {
+      await ZaifLocalFiles.deleteFile(localRecordingId);
+    }
+    return { ok: true, bytes: bytesWritten, mode: "folder" };
+  }
+  const blob = new Blob(chunks, { type: recorder?.mimeType || "audio/webm" });
   chunks = [];
-  startedAt = Date.now();
-  const activeRecorder = new MediaRecorder(output.stream, { mimeType: mime, audioBitsPerSecond: 64000 });
-  recorder = activeRecorder;
-  activeRecorder.ondataavailable = event => {
-    if (event.data?.size) chunks.push(event.data);
-  };
-  activeRecorder.onerror = event => {
-    send("RECORDING_STATE", { recording: false, warning: "Recorder error: " + (event.error?.message || "unknown") });
-  };
-  activeRecorder.start(1000);
-  await send("RECORDING_STATE", { recording: true });
-  return { ok: true };
+  if (!blob.size) return { ok: true, bytes: 0, mode: "downloads" };
+  const url = URL.createObjectURL(blob);
+  const result = await send("SAVE_RECORDING", { url, startedAt, durationMs, bytes: blob.size });
+  if (!result?.ok) {
+    URL.revokeObjectURL(url);
+    throw new Error(result?.error || "Download failed");
+  }
+  pendingDownloads.set(result.downloadId, url);
+  // Bounded cache: avoid keeping large recordings twice in Chrome's profile.
+  if (blob.size <= 12 * 1024 * 1024) {
+    try { await ZaifAudioStore.putAudio(result.recordingId, blob); }
+    catch (error) { console.warn("Audio cache unavailable:", error); }
+  }
+  return { ok: true, bytes: blob.size, mode: "downloads" };
 }
 async function stopRecording() {
+  if (startPromise) await startPromise;
   if (!recorder || recorder.state === "inactive") return { ok: true, alreadyStopped: true };
   if (recordingPromise) return recordingPromise;
-  const activeRecorder = recorder;
+  const current = recorder;
   recordingPromise = new Promise((resolve, reject) => {
-    activeRecorder.addEventListener("stop", async () => {
-      const begin = startedAt;
-      const durationMs = Date.now() - begin;
-      const blob = new Blob(chunks, { type: activeRecorder.mimeType });
-      chunks = [];
-      recorder = null;
-      recordingPromise = null;
+    current.addEventListener("stop", async () => {
+      const durationMs = Date.now() - startedAt;
+      let result;
       try {
-        if (blob.size > 0) {
-          const url = URL.createObjectURL(blob);
-          const result = await send("SAVE_RECORDING", { url, startedAt: begin, durationMs, bytes: blob.size });
-          if (!result?.ok) { URL.revokeObjectURL(url); throw new Error(result?.error || "Download failed"); }
-          pendingDownloads.set(result.downloadId, url);
-          // Keep one temporary audio copy for one-click Whisper transcription.
-          // Failure must not prevent the saved download; the user can import the file instead.
-          try {
-            await ZaifAudioStore.putAudio(result.recordingId, blob);
-          } catch (cacheError) {
-            console.warn("Could not cache audio for transcription:", cacheError);
-            await send("RECORDING_STATE", {
-              recording: false,
-              warning: "Downloaded successfully; local transcription copy unavailable. Import saved file to transcribe."
-            });
-          }
-        }
+        result = await persistResult(durationMs);
         await send("RECORDING_STATE", { recording: false });
-        resolve({ ok: true, bytes: blob.size });
+        resolve(result);
       } catch (error) {
-        await send("RECORDING_STATE", { recording: false, warning: "Recording save failed: " + error.message });
+        if (localWriter) await localWriter.abort().catch(() => {});
+        await send("RECORDING_STATE", {
+          recording: false, warning: "Recording could not be saved completely: " + error.message
+        });
         reject(error);
+      } finally {
+        recorder = null;
+        recordingPromise = null;
+        localWriter = null;
+        localRecordingId = null;
+        localName = "";
+        chunks = [];
       }
     }, { once: true });
-    activeRecorder.stop();
+    current.stop();
   });
   return recordingPromise;
 }

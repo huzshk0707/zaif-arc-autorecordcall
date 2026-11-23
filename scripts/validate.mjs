@@ -9,7 +9,7 @@ assert.equal(manifest.background.service_worker, "src/background.js");
 assert.ok(manifest.permissions.includes("tabCapture"));
 assert.ok(manifest.permissions.includes("offscreen"));
 assert.ok(!manifest.host_permissions, "No blanket site permissions");
-for (const path of ["src/background.js","src/offscreen.js","src/dashboard.js","src/call-detector.js"]) {
+for (const path of ["src/background.js","src/offscreen.js","src/dashboard.js","src/call-detector.js","src/local-files.js"]) {
   new vm.Script(read(path), { filename: path });
 }
 const html = read("src/dashboard.html");
@@ -85,4 +85,24 @@ for (const filename of ["src/audio-store.js", "src/transcribe.js", "src/whisper-
 assert.ok(read("src/whisper-worker-entry.js").includes('env.allowRemoteModels = false'), "Model must not request hosted inference");
 assert.ok(read("scripts/setup-whisper.mjs").includes("encoder_model_quantized.onnx"), "Offline model files missing");
 assert.ok(transcriptJs.includes("ZaifAudioStore") || transcriptJs.includes("globalThis.ZaifAudioStore"), "Transcription must use local store");
+// Local folder recording: user-granted directory handles and direct chunk writing.
+const localSource = read("src/local-files.js");
+const offscreenSource = read("src/offscreen.js");
+const backgroundSource = read("src/background.js");
+assert.ok(html.includes('id="chooseFolder"') && html.includes('id="reconnectFolder"'));
+assert.ok(html.includes('id="localAudioPlayer"'));
+assert.ok(html.includes('src="local-files.js"'));
+assert.ok(read("src/offscreen.html").includes('src="local-files.js"'));
+assert.ok(localSource.includes("showDirectoryPicker"));
+assert.ok(localSource.includes("queryPermission") && localSource.includes("requestPermission"));
+assert.ok(localSource.includes("createWritable") && localSource.includes("indexedDB"));
+assert.ok(offscreenSource.includes("await writable.write(blob)"), "Media chunks must stream to disk");
+assert.ok(offscreenSource.includes("SAVE_LOCAL_RECORDING"), "Disk recording must register in library");
+assert.ok(offscreenSource.includes("blob.size <= 12 * 1024 * 1024"), "In-browser recording copy must be bounded");
+assert.ok(backgroundSource.includes('item.storage === "folder"'), "Disk and Downloads metadata require separate handling");
+assert.ok(backgroundSource.includes("registerFolderRecording"));
+assert.ok(read("src/dashboard.js").includes("ZaifLocalFiles.deleteFile"));
+assert.ok(read("src/transcribe.js").includes("ZaifLocalFiles.openFile"), "Transcribe directly from linked computer file");
+assert.ok(read("src/transcribe.js").includes("20 * 1024 * 1024"), "Limit browser transcription input");
+assert.ok(read("src/storage.css").includes(".local-folder-panel"));
 console.log("ZAIF ARC static checks passed.");
