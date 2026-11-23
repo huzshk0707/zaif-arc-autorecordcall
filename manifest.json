@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "ZAIF // ARC — FIZU Edition",
   "short_name": "ZAIF ARC",
-  "version": "0.3.0",
-  "description": "FIZU Edition Chrome audio recorder with optional on-device Whisper transcripts.",
+  "version": "0.4.0",
+  "description": "FIZU Edition Chrome recorder: direct local folder saves and optional offline Whisper transcription.",
   "minimum_chrome_version": "116",
   "permissions": [
     "activeTab",

@@ -4,6 +4,7 @@ const fmtBytes = n => !n ? "0 MB" : n >= 1048576 ? (n / 1048576).toFixed(1) + " 
 let priorRecordingState = null;
 let knownSavedIds = null;
 let toastTimer = null;
+let localPlaybackURL = null;
 function showToast(message) {
   const toast = $("toast");
   toast.textContent = message;
@@ -51,7 +52,11 @@ async function loadState() {
 async function refreshLibrary() {
   const result = await request("REFRESH_LIBRARY");
   if (!result.ok) return errorMessage(result.error);
-  const items = result.recordings;
+  const items = await Promise.all(result.recordings.map(async item => {
+    if (item.storage !== "folder") return item;
+    try { return { ...item, status: await ZaifLocalFiles.recordStatus(item.id) }; }
+    catch { return { ...item, status: "permission" }; }
+  }));
   const newlySaved = items.find(item => item.status === "saved" && knownSavedIds !== null && !knownSavedIds.has(item.id));
   knownSavedIds = new Set(items.filter(item => item.status === "saved").map(item => item.id));
   if (newlySaved) showToast("Saved successfully ♡");
@@ -84,7 +89,22 @@ async function refreshLibrary() {
     const buttons = document.createElement("div"); buttons.className = "record-actions";
     if (rec.status === "saved") {
       const open = document.createElement("button"); open.textContent = "OPEN";
-      open.addEventListener("click", () => chrome.downloads.open(rec.downloadId));
+      open.addEventListener("click", async () => {
+        try {
+          if (rec.storage === "folder") {
+            const file = await ZaifLocalFiles.openFile(rec.id);
+            const player = $("localAudioPlayer");
+            if (localPlaybackURL) URL.revokeObjectURL(localPlaybackURL);
+            localPlaybackURL = URL.createObjectURL(file);
+            player.src = localPlaybackURL;
+            player.hidden = false;
+            player.scrollIntoView({ behavior: "smooth", block: "center" });
+            await player.play().catch(() => {}); // Browser can require pressing play.
+          } else {
+            await chrome.downloads.open(rec.downloadId);
+          }
+        } catch (error) { errorMessage("Cannot open recording: " + error.message); }
+      });
       buttons.append(open);
     }
     const transcribe = document.createElement("button"); transcribe.textContent = "TRANSCRIBE";
@@ -94,9 +114,24 @@ async function refreshLibrary() {
     buttons.append(transcribe);
     const del = document.createElement("button"); del.textContent = "DELETE";
     del.addEventListener("click", async () => {
-      if (!confirm("Delete this recording's downloaded file and library entry?")) return;
-      const outcome = await request("DELETE_RECORDING", { id: rec.id });
-      if (!outcome.ok) errorMessage(outcome.error);
+      if (!confirm("Permanently delete this recording's file, transcript, and library entry?")) return;
+      try {
+        if (rec.storage === "folder" && rec.status !== "missing") {
+          await ZaifLocalFiles.deleteFile(rec.id);
+        } else if (rec.storage === "folder") {
+          await ZaifLocalFiles.forgetFile(rec.id);
+        }
+        const outcome = await request("DELETE_RECORDING", {
+          id: rec.id, fileDeleted: rec.storage === "folder"
+        });
+        if (!outcome.ok) throw new Error(outcome.error);
+        if (localPlaybackURL) {
+          URL.revokeObjectURL(localPlaybackURL);
+          localPlaybackURL = null;
+          const player = $("localAudioPlayer");
+          player.pause(); player.removeAttribute("src"); player.hidden = true;
+        }
+      } catch (error) { errorMessage("Delete failed: " + error.message); }
       await refreshLibrary();
     });
     buttons.append(del); row.append(icon, main, buttons); list.append(row);
@@ -173,11 +208,61 @@ $("disarmBtn").addEventListener("click", async () => {
   const res = await request("DISARM");
   if (!res.ok) errorMessage(res.error); await Promise.all([loadState(), refreshLibrary()]);
 });
+async function updateFolderStatus() {
+  const label = $("folderStatus");
+  try {
+    const status = await ZaifLocalFiles.folderStatus();
+    label.classList.toggle("is-warning", status.configured && !status.granted);
+    if (!status.configured) {
+      label.textContent = "Using Downloads · Choose a computer folder for lower-memory recordings.";
+    } else if (status.granted) {
+      label.textContent = "Connected: " + status.name + " · New recordings stream straight to this folder.";
+    } else {
+      label.textContent = "Access needed: " + status.name + " · Reconnect before recording.";
+    }
+    $("reconnectFolder").disabled = !status.configured || status.granted;
+    $("clearFolder").disabled = !status.configured;
+  } catch (error) {
+    label.textContent = "Local storage isn't available: " + error.message;
+  }
+}
+$("chooseFolder").addEventListener("click", async () => {
+  try {
+    await ZaifLocalFiles.selectFolder();
+    await updateFolderStatus();
+    showToast("Computer folder connected ✨");
+  } catch (error) {
+    if (error.name !== "AbortError") errorMessage("Folder selection failed: " + error.message);
+  }
+});
+$("reconnectFolder").addEventListener("click", async () => {
+  try {
+    await ZaifLocalFiles.reconnectFolder();
+    await updateFolderStatus();
+    await refreshLibrary();
+    showToast("Folder access restored");
+  } catch (error) { errorMessage("Reconnect failed: " + error.message); }
+});
+$("clearFolder").addEventListener("click", async () => {
+  if (!confirm("Use the Downloads folder for new calls? Files already saved in your computer folder will stay there.")) return;
+  await ZaifLocalFiles.clearFolder();
+  await updateFolderStatus();
+  showToast("New calls will save to Downloads");
+});
 $("refreshLibrary").addEventListener("click", refreshLibrary);
 $("importAudio").addEventListener("click", () => chrome.tabs.create({ url: chrome.runtime.getURL("src/transcribe.html") }));
 $("clearMissing").addEventListener("click", async () => {
   const result = await request("PURGE_MISSING");
   if (!result.ok) return errorMessage(result.error);
+  const { recordings = [] } = await chrome.storage.local.get("recordings");
+  for (const rec of recordings.filter(x => x.storage === "folder")) {
+    if (await ZaifLocalFiles.recordStatus(rec.id).catch(() => "permission") !== "missing") continue;
+    try {
+      await ZaifLocalFiles.forgetFile(rec.id);
+      const removed = await request("DELETE_RECORDING", { id: rec.id, fileDeleted: true });
+      if (!removed.ok) errorMessage(removed.error);
+    } catch (error) { errorMessage(error.message); }
+  }
   await refreshLibrary();
 });
 $("clearTranscriptionCopies").addEventListener("click", async () => {
@@ -194,6 +279,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   await initializeIntro();
   await loadState();
   await refreshLibrary();
+  await updateFolderStatus();
   const { lastError } = await chrome.storage.local.get("lastError");
   if (lastError) errorMessage(lastError);
 })();

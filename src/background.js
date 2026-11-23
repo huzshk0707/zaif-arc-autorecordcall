@@ -131,6 +131,19 @@ async function saveRecording(data) {
   // The source Blob URL stays alive in the offscreen document until Chrome finishes the download.
   return { ok: true, downloadId, recordingId: entry.id };
 }
+async function registerFolderRecording(data) {
+  if (!/^[a-f0-9-]{36}$/.test(data.recordingId || "")) throw new Error("Invalid local recording ID.");
+  if (!/^ZAIF-[\dTZ-]+-[a-f0-9]{8}\.webm$/.test(data.name || "")) throw new Error("Invalid local recording name.");
+  if (!Number.isFinite(data.bytes) || data.bytes <= 0) throw new Error("Invalid local recording size.");
+  const { recordings = [] } = await chrome.storage.local.get("recordings");
+  const item = {
+    id: data.recordingId, downloadId: null, storage: "folder",
+    name: data.name, filename: data.name, createdAt: data.startedAt,
+    durationMs: data.durationMs, bytes: data.bytes, status: "saved"
+  };
+  await chrome.storage.local.set({ recordings: [item, ...recordings] });
+  return { ok: true, recordingId: item.id };
+}
 chrome.downloads.onChanged.addListener(async change => {
   if (!change.state) return;
   const { recordings = [] } = await chrome.storage.local.get("recordings");
@@ -143,6 +156,7 @@ chrome.downloads.onChanged.addListener(async change => {
 async function refreshLibrary() {
   const { recordings = [] } = await chrome.storage.local.get("recordings");
   const results = await Promise.all(recordings.map(async item => {
+    if (item.storage === "folder") return item; // Dashboard checks selected local files directly.
     const matches = await chrome.downloads.search({ id: item.downloadId });
     const file = matches[0];
     return { ...item, status: !file || file.exists === false ? "missing" :
@@ -154,15 +168,20 @@ async function refreshLibrary() {
   }
   return results;
 }
-async function deleteRecording(recordId) {
+async function deleteRecording(recordId, localFileRemoved = false) {
   const { recordings = [] } = await chrome.storage.local.get("recordings");
   const item = recordings.find(x => x.id === recordId);
   if (!item) throw new Error("Recording not found");
-  const matches = await chrome.downloads.search({ id: item.downloadId });
-  if (matches[0]?.state === "complete" && matches[0]?.exists) {
-    await chrome.downloads.removeFile(item.downloadId);
+  if (item.storage === "folder") {
+    // The dashboard first deletes the file using the stored directory handle.
+    if (!localFileRemoved) throw new Error("Delete this local recording from the ZAIF dashboard.");
+  } else {
+    const matches = await chrome.downloads.search({ id: item.downloadId });
+    if (matches[0]?.state === "complete" && matches[0]?.exists) {
+      await chrome.downloads.removeFile(item.downloadId);
+    }
+    await chrome.downloads.erase({ id: item.downloadId });
   }
-  await chrome.downloads.erase({ id: item.downloadId });
   await chrome.storage.local.set({ recordings: recordings.filter(x => x.id !== recordId) });
   await ZaifAudioStore.deleteRecording(recordId);
 }
@@ -186,6 +205,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return { ok: true };
     }
     if (message.target === "worker" && message.type === "SAVE_RECORDING") return saveRecording(message);
+    if (message.target === "worker" && message.type === "SAVE_LOCAL_RECORDING") return registerFolderRecording(message);
     if (message.type === "GET_STATE") return { ok: true, capture: current, settings: await settings() };
     if (message.type === "START_RECORDING" || message.type === "STOP_RECORDING") {
       if (!current) throw new Error("Click the extension icon on the call tab to arm recording.");
@@ -209,7 +229,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       for (const item of recordings) await ZaifAudioStore.deleteAudio(item.id);
       return { ok: true };
     }
-    if (message.type === "DELETE_RECORDING") { await deleteRecording(message.id); return { ok: true }; }
+    if (message.type === "DELETE_RECORDING") {
+      await deleteRecording(message.id, message.fileDeleted === true);
+      return { ok: true };
+    }
     return { ok: false, error: "Unsupported message" };
   })().then(sendResponse, error => sendResponse({ ok: false, error: String(error.message || error) }));
   return true;
