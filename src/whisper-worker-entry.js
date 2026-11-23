@@ -11,10 +11,11 @@ env.backends.onnx.wasm.numThreads = 1;
 
 let recognizerPromise = null;
 function status(message) { self.postMessage({ type: "STATUS", message }); }
-function loadModel() {
+function loadModel(mode) {
   if (!recognizerPromise) {
-    status("Loading local Whisper Tiny English model…");
-    recognizerPromise = pipeline("automatic-speech-recognition", "Xenova/whisper-tiny.en", {
+    const id = mode === "base" ? "Xenova/whisper-base.en" : "Xenova/whisper-tiny.en";
+    status("Loading local " + id + "…");
+    recognizerPromise = pipeline("automatic-speech-recognition", id, {
       device: "wasm",
       dtype: "q8",
       progress_callback(event) {
@@ -37,17 +38,36 @@ self.onmessage = async ({ data }) => {
     if (!(data.audio instanceof Float32Array) || data.audio.length === 0) {
       throw new Error("Expected nonempty 16 kHz mono audio.");
     }
-    const model = await loadModel();
-    status("Transcribing on this computer…");
-    // whisper-tiny.en is an English-only model. Transformers.js rejects
-    // language/task overrides for English-only Whisper; those options belong
-    // to multilingual Whisper models, not this one.
-    const output = await model(data.audio, {
-      chunk_length_s: 30,
-      stride_length_s: 5,
-      return_timestamps: false
-    });
-    self.postMessage({ type: "RESULT", jobId, text: String(output?.text || "").trim() });
+    const model = await loadModel(data.mode);
+    const parts = [];
+    let start = 0;
+    // Each sample belongs to exactly one segment. Within 20–27 seconds,
+    // cut at the midpoint of the quietest 40 ms frame to favor pauses.
+    // Leave at least one second of tail when splitting a longer recording.
+    while (start < data.audio.length) {
+      let end = data.audio.length;
+      if (end - start > 28 * 16000) {
+        let lowest = Infinity;
+        for (let i = start + 20 * 16000; i + 640 <= start + 27 * 16000; i += 640) {
+          let energy = 0;
+          for (let j = i; j < i + 640; j++) energy += data.audio[j] ** 2;
+          if (energy <= lowest) { lowest = energy; end = i + 320; }
+        }
+      }
+      const segment = data.audio.subarray(start, end);
+      if (segment.some(value => value !== 0)) {
+        const output = await model(segment, { chunk_length_s: 0 });
+        const text = output?.text?.trim();
+        if (!text) throw new Error("No text recognized for " + (start / 16000).toFixed(1)
+          + "–" + (end / 16000).toFixed(1) + " seconds. Review the audio or retry.");
+        parts.push(text);
+      }
+      start = end;
+      self.postMessage({ type: "PROGRESS", jobId, percent: 100 * end / data.audio.length,
+        message: "Processed " + (end / 16000).toFixed(1) + " of "
+          + (data.audio.length / 16000).toFixed(1) + " seconds" });
+    }
+    self.postMessage({ type: "RESULT", jobId, text: parts.join(" ") });
   } catch (error) {
     self.postMessage({ type: "ERROR", jobId, message: String(error?.message || error) });
   }

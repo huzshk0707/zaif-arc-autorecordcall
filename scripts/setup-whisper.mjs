@@ -12,10 +12,12 @@ import { build } from "esbuild";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
 const lib = path.join(root, "lib");
-const modelDir = path.join(lib, "models", "Xenova", "whisper-tiny.en");
+
 const ORT_DIR = path.join(lib, "ort");
-const MODEL_ID = "Xenova/whisper-tiny.en";
-const REVISION = "587f87336f46d17831cc9a2539389bef5f082537";
+const models = {
+  "Xenova/whisper-tiny.en": "587f87336f46d17831cc9a2539389bef5f082537",
+  "Xenova/whisper-base.en": "95bf40a508535962c6483ead40270b2e32267508"
+};
 const MODEL_FILES = [
   "config.json",
   "generation_config.json",
@@ -32,7 +34,8 @@ const OPTIONAL_MODEL_FILES = [
 function ensureInside(target, base) {
   if (!target.startsWith(base + path.sep)) throw new Error("Path escapes packaging directory.");
 }
-async function getFile(relative, optional = false) {
+async function getFile(id, revision, relative, optional = false) {
+  const modelDir = path.join(lib, "models", id);
   const destination = path.join(modelDir, relative);
   ensureInside(destination, modelDir);
   await fs.mkdir(path.dirname(destination), { recursive: true });
@@ -41,7 +44,7 @@ async function getFile(relative, optional = false) {
     console.log("✓ Cached:", relative);
     return;
   }
-  const remote = "https://huggingface.co/" + MODEL_ID + "/resolve/" + REVISION + "/" + relative;
+  const remote = "https://huggingface.co/" + id + "/resolve/" + revision + "/" + relative;
   console.log("↓ Downloading", relative);
   let lastError;
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -63,7 +66,7 @@ async function getFile(relative, optional = false) {
       try {
         await pipeline(Readable.fromWeb(response.body), createWriteStream(temporary));
         const size = (await fs.stat(temporary)).size;
-        if (size < 64) throw new Error("Downloaded file looks incomplete.");
+        if (!size || (relative.endsWith(".onnx") && size < 1024)) throw new Error("Downloaded file looks incomplete.");
         await fs.rename(temporary, destination);
         console.log("✓", relative, (size / 1048576).toFixed(1) + " MB");
         return;
@@ -110,11 +113,12 @@ async function main() {
   });
   console.log("✓ Whisper worker bundled.");
   await copyRuntime();
-  await fs.mkdir(modelDir, { recursive: true });
-  for (const name of MODEL_FILES) await getFile(name);
-  for (const name of OPTIONAL_MODEL_FILES) await getFile(name, true);
+  for (const [id, revision] of Object.entries(models)) {
+    for (const name of MODEL_FILES) await getFile(id, revision, name);
+    for (const name of OPTIONAL_MODEL_FILES) await getFile(id, revision, name, true);
+  }
   await fs.writeFile(path.join(lib, "model-info.json"), JSON.stringify({
-    model: MODEL_ID, revision: REVISION, dtype: "q8",
+    models, dtype: "q8",
     files: MODEL_FILES, runtime: "local-only"
   }, null, 2) + "\n");
   console.log("\n✓ Offline transcription bundle ready. Reload ZAIF ARC in Chrome.");

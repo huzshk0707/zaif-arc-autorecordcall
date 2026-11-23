@@ -146,4 +146,31 @@ assert.ok(messages.some(message =>
   message.text === "Welcome to Samplelib dot com."
 ), "Worker should successfully return text for English-only model");
 assert.ok(!messages.some(message => message.type === "ERROR"), "Worker unexpectedly reported an error");
+// Exact sample coverage, late failures and genuine repeated phrases.
+const samples = new Float32Array(62 * 16000 + 1).fill(0.25);
+async function exercise(outputs, input = samples) {
+  messages.length = 0;
+  let covered = 0;
+  sandbox.pipeline = async (_, id) => {
+    assert.equal(id, "Xenova/whisper-base.en");
+    return async (segment, options) => {
+      assert.equal(options.chunk_length_s, 0);
+      assert.equal(segment.buffer, input.buffer);
+      assert.equal(segment.byteOffset, covered * 4);
+      covered += segment.length;
+      return { text: outputs.shift() };
+    };
+  };
+  new vm.Script(testWorkerSource).runInNewContext(vm.createContext({ ...sandbox }));
+  await sandbox.self.onmessage({ data: { type: "TRANSCRIBE", jobId: 20, mode: "base", audio: input } });
+  return covered;
+}
+assert.equal(await exercise(["again", "again", "final word"]), samples.length);
+assert.equal(messages.at(-1).text, "again again final word");
+assert.equal(messages.at(-2).percent, 100);
+await exercise(["recognized", ""]);
+assert.equal(messages.at(-1).type, "ERROR");
+assert.ok(!messages.some(m => m.type === "RESULT"));
+assert.equal(await exercise([], new Float32Array(32000)), 0);
+assert.equal(messages.at(-1).text, "");
 console.log("ZAIF ARC static checks passed.");

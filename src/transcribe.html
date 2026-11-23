@@ -29,13 +29,18 @@
         <label for="audioFile">Import audio or video</label>
         <input type="file" id="audioFile" accept="audio/*,video/*,.webm,.mp3,.mp4,.wav,.m4a,.ogg">
         <p class="help">Recordings made in ZAIF can use their temporary local copy for one-click transcription. For older calls or cleared copies, choose the saved file from Downloads.</p>
+        <label for="modelMode">Transcription mode</label>
+        <select id="modelMode">
+          <option value="tiny">Fast — Tiny English (lower resource usage)</option>
+          <option value="base">Accurate — Base English (higher resource usage, potentially better accuracy)</option>
+        </select>
         <div class="button-row transcript-actions">
           <button type="button" id="transcribeBtn" class="button primary">TRANSCRIBE</button>
           <button type="button" id="cancelBtn" class="button secondary" disabled>CANCEL</button>
         </div>
         <p id="modelStatus" class="transcript-status" role="status" aria-live="polite">Checking local Whisper setup…</p>
         <progress id="transcribeProgress" value="0" max="100" hidden></progress>
-        <p class="transcript-note">Model: Whisper Tiny English, CPU/WASM. First-time setup uses <code>npm install --ignore-scripts</code> and <code>npm run setup</code>, then transcription works offline. Speaker labels are unavailable for mixed-audio recordings.</p>
+        <p class="transcript-note">Offline inference uses CPU/WASM. First-time setup uses <code>npm install --ignore-scripts</code> and <code>npm run setup</code>, then transcription works offline. Speaker labels are unavailable for mixed-audio recordings.</p>
       </div>
       <div class="panel transcript-panel">
         <div class="panel-title"><h2>♡ &nbsp; TRANSCRIPT</h2><span class="section-tag">TEXT</span></div>
