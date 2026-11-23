@@ -173,4 +173,23 @@ assert.equal(messages.at(-1).type, "ERROR");
 assert.ok(!messages.some(m => m.type === "RESULT"));
 assert.equal(await exercise([], new Float32Array(32000)), 0);
 assert.equal(messages.at(-1).text, "");
+// Fixed-seed microphone hiss at approximately -65 dBFS RMS.
+let seed = 17;
+const tone = Float32Array.from({ length: 25 * 16000 }, () => {
+  seed = (Math.imul(1664525, seed) + 1013904223) >>> 0;
+  return (seed / 2 ** 32 * 2 - 1) * 0.001;
+});
+assert.equal(await exercise([], tone), 0);
+assert.equal(messages.at(-1).quietSeconds, 25);
+const softSpeech = tone.slice();
+for (let i = 16000; i < 20000; i++) softSpeech[i] = 0.0012 * Math.sin(i / 12);
+assert.equal(await exercise(["soft voice"], softSpeech), softSpeech.length);
+assert.equal(messages.at(-1).text, "soft voice");
+const withTail = new Float32Array(45 * 16000);
+withTail.fill(0.03, 0, 20 * 16000);
+withTail.set(tone, 20 * 16000);
+await exercise(["last words"], withTail);
+assert.equal(messages.at(-1).text, "last words");
+assert.ok(messages.at(-1).quietSeconds >= 18);
+assert.equal(messages.at(-2).percent, 100);
 console.log("ZAIF ARC static checks passed.");

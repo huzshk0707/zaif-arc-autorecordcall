@@ -85,7 +85,7 @@ $("audioFile").addEventListener("change", () => {
   }
   updateButtons();
 });
-async function decodeToMono16k(blob) {
+async function decodeToMono16k(blob, mode) {
   if (blob.size > 20 * 1024 * 1024) throw new Error("This recording is too large for safe in-browser transcription (20 MB limit). The original recording remains on your computer. Use a local desktop transcription tool for long calls.");
   setStatus("Decoding audio and preparing 16 kHz waveform…");
   const context = new AudioContext({ sampleRate: 16000 });
@@ -94,6 +94,7 @@ async function decodeToMono16k(blob) {
   catch (err) { throw new Error("Chrome could not decode this audio file. Try exporting it as WAV, MP3, or WebM audio. " + err.message); }
   finally { await context.close().catch(() => {}); }
   if (!audio.duration || audio.duration > 1200) throw new Error("For Chrome performance, transcribe clips of 20 minutes or less. The recording itself is unchanged.");
+  if (mode === "base" && audio.duration > 480) throw new Error("Base English supports up to 8 minutes. Choose Fast — Tiny English for this recording.");
   const mono = audio.getChannelData(0);
   for (let channel = 1; channel < audio.numberOfChannels; channel++) {
     const samples = audio.getChannelData(channel);
@@ -106,16 +107,17 @@ async function decodeToMono16k(blob) {
 }
 async function transcribe() {
   if (busy) return;
+  const mode = $("modelMode").value;
   const blob = currentBlob();
   if (!blob) { setStatus("Choose a recording or import an audio/video file first.", true); return; }
   if (!runtimeReady) { setStatus("Install the local Whisper runtime first with npm run setup.", true); return; }
   busy = true; updateButtons();
   const jobId = ++currentJob;
   try {
-    const pcm = await decodeToMono16k(blob);
+    const pcm = await decodeToMono16k(blob, mode);
     if (jobId !== currentJob) return;
     setStatus("Starting Whisper worker…");
-    const text = await new Promise((resolve, reject) => {
+    const { text, quietSeconds } = await new Promise((resolve, reject) => {
       const worker = new Worker(workerURL, { type: "module", name: "zaif-whisper" });
       activeWorker = worker;
       rejectWorker = reject;
@@ -132,10 +134,10 @@ async function transcribe() {
           $("transcribeProgress").value = Math.max(0, Math.min(100, data.percent || 0));
           setStatus(data.message);
         }
-        if (data.type === "RESULT") resolve(data.text);
+        if (data.type === "RESULT") resolve(data);
         if (data.type === "ERROR") reject(new Error(data.message));
       };
-      worker.postMessage({ type: "TRANSCRIBE", jobId, mode: $("modelMode").value, audio: pcm }, [pcm.buffer]);
+      worker.postMessage({ type: "TRANSCRIBE", jobId, mode, audio: pcm }, [pcm.buffer]);
     });
     if (jobId !== currentJob) return;
     if (!text) throw new Error("Whisper returned no speech. Please verify the recording contains audible voices.");
@@ -156,7 +158,7 @@ async function transcribe() {
       }
     }
     displayText(text, sourceName, "Saved on this device");
-    setStatus("Transcription completed ♡");
+    setStatus("Transcription completed ♡" + (quietSeconds ? " · Skipped " + quietSeconds.toFixed(1) + " seconds of near-silence." : ""));
   } catch (error) {
     if (jobId === currentJob) setStatus("Transcription failed: " + (error?.message || error), true);
   } finally {
