@@ -105,4 +105,45 @@ assert.ok(read("src/dashboard.js").includes("ZaifLocalFiles.deleteFile"));
 assert.ok(read("src/transcribe.js").includes("ZaifLocalFiles.openFile"), "Transcribe directly from linked computer file");
 assert.ok(read("src/transcribe.js").includes("20 * 1024 * 1024"), "Limit browser transcription input");
 assert.ok(read("src/storage.css").includes(".local-folder-panel"));
+// Regression: simulate the real worker message path with a stub English-only
+// Whisper pipeline. It must never pass multilingual-only language/task options.
+const workerSource = read("src/whisper-worker-entry.js");
+const messages = [];
+let decodeOptions = null;
+const sandbox = {
+  URL,
+  Float32Array,
+  env: { backends: { onnx: { wasm: {} } } },
+  pipeline: async (pipelineTask, modelName) => {
+    assert.equal(pipelineTask, "automatic-speech-recognition");
+    assert.equal(modelName, "Xenova/whisper-tiny.en");
+    return async (audio, options) => {
+      assert.ok(audio instanceof Float32Array);
+      decodeOptions = options;
+      if (Object.hasOwn(options, "task") || Object.hasOwn(options, "language")) {
+        throw new Error("Cannot specify task or language for an English-only model.");
+      }
+      return { text: "Welcome to Samplelib dot com." };
+    };
+  },
+  self: { postMessage: message => messages.push(message) }
+};
+const testWorkerSource = workerSource
+  .replace('import { env, pipeline } from "@huggingface/transformers";', "")
+  .replace(/import\.meta\.url/g, JSON.stringify("chrome-extension://test-extension/lib/whisper-worker.mjs"));
+new vm.Script(testWorkerSource, { filename: "src/whisper-worker-entry.js" }).runInNewContext(sandbox);
+assert.equal(typeof sandbox.self.onmessage, "function", "Whisper worker message handler unavailable");
+await sandbox.self.onmessage({ data: {
+  type: "TRANSCRIBE",
+  jobId: 19,
+  audio: new Float32Array([0.1, 0.2, 0.1])
+}});
+assert.ok(decodeOptions, "Whisper decoding options were not passed");
+assert.equal(Object.hasOwn(decodeOptions, "task"), false, "English-only Whisper must omit task");
+assert.equal(Object.hasOwn(decodeOptions, "language"), false, "English-only Whisper must omit language");
+assert.ok(messages.some(message =>
+  message.type === "RESULT" && message.jobId === 19 &&
+  message.text === "Welcome to Samplelib dot com."
+), "Worker should successfully return text for English-only model");
+assert.ok(!messages.some(message => message.type === "ERROR"), "Worker unexpectedly reported an error");
 console.log("ZAIF ARC static checks passed.");

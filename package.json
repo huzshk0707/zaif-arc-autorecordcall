@@ -1,6 +1,6 @@
 {
   "name": "zaif-arc-autorecordcall",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "ZAIF ARC — local call recording and optional Whisper Tiny transcription",
   "scripts": {
