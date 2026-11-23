@@ -21,12 +21,23 @@ jobs:
         run: npm run setup
       - name: Validate locally packaged assets
         run: npm run verify:runtime
-      - name: Create installable unpacked-extension ZIP
-        run: zip -q -r zaif-arc-fizu-offline.zip manifest.json src assets lib
-      - name: Upload installable extension ZIP
+      # The Actions artifact itself downloads as ZIP. Upload raw extension files,
+      # not another ZIP, so Windows only needs to extract once.
+      - name: Verify extension root and bundled Whisper assets
+        run: |
+          test -f manifest.json
+          test -f src/dashboard.html
+          test -f lib/whisper-worker.mjs
+          test -d lib/models/Xenova/whisper-tiny.en
+          test -d lib/ort
+      - name: Upload single-extract Chrome extension artifact
         uses: actions/upload-artifact@v4
         with:
           name: zaif-arc-fizu-offline
-          path: zaif-arc-fizu-offline.zip
+          path: |
+            manifest.json
+            src/
+            assets/
+            lib/
           if-no-files-found: error
           retention-days: 30
