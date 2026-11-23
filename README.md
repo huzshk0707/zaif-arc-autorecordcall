@@ -49,7 +49,7 @@ The separate transcription page processes English speech with **Whisper Tiny Eng
 **A. Easiest: prebuilt GitHub Actions ZIP (no Node on your PC):**
 
 1. Open the repository **Actions** tab and the latest successful **Build offline ZAIF extension** run on `main`.
-2. In the run's **Artifacts**, download `zaif-arc-fizu-offline`. Extract its outer archive, then extract the included `zaif-arc-fizu-offline.zip`.
+2. Under **Artifacts**, download `zaif-arc-fizu-offline` and **Extract All just once**. The extracted folder contains `manifest.json`, `src/`, `assets/` and `lib/` directly. No inner ZIP or password is needed.
 3. Open `chrome://extensions`, enable Developer mode and **Load unpacked** the extracted folder with `manifest.json`.
 4. If upgrading, replace the files in your current unpacked folder and click **Reload**. Keep the extension ID/profile consistent to preserve your current recording library.
 
